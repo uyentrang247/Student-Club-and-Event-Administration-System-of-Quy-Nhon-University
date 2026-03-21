@@ -1,0 +1,7 @@
+[2026-03-17 21:26:48] User login successful: Admin {"ip":"::1"}
+[2026-03-17 21:41:57] User logout: Admin {"ip":"::1"}
+[2026-03-17 21:42:34] User registered: mihtahm05 {"ip":"::1"}
+[2026-03-17 21:43:01] User login successful: mihtahm05 {"ip":"::1"}
+[2026-03-17 21:54:17] User created club: CLB Dấu chân tình nguyện {"user_id":5,"club_id":6}
+[2026-03-17 21:58:19] Member added to club {"club_id":6,"user_id":4,"added_by":5}
+[2026-03-17 21:58:26] Member added to club {"club_id":6,"user_id":1,"added_by":5}
