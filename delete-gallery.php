@@ -33,10 +33,10 @@ if (!can_manage_club($conn, $user_id, $club_id)) {
 }
 
 // Fetch photo + media info
-$sql = "SELECT cg.media_id, ml.file_path 
-        FROM club_gallery cg 
-        LEFT JOIN media_library ml ON cg.media_id = ml.id
-        WHERE cg.id = ? AND cg.club_id = ?";
+$sql = "SELECT g.media_id, m.path 
+        FROM gallery g 
+        LEFT JOIN media m ON g.media_id = m.id
+        WHERE g.id = ? AND g.club_id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("ii", $photo_id, $club_id);
 $stmt->execute();
@@ -48,12 +48,12 @@ if (!$res) {
 }
 
 $media_id = (int)$res['media_id'];
-$file_path = $res['file_path'] ?? '';
+$file_path = $res['path'] ?? '';
 
 $conn->begin_transaction();
 
 // Delete gallery entry
-$del_gallery = $conn->prepare("DELETE FROM club_gallery WHERE id = ? AND club_id = ?");
+$del_gallery = $conn->prepare("DELETE FROM gallery WHERE id = ? AND club_id = ?");
 $del_gallery->bind_param("ii", $photo_id, $club_id);
 if (!$del_gallery->execute()) {
     $conn->rollback();
@@ -63,7 +63,7 @@ $del_gallery->close();
 
 // Delete media row
 if ($media_id > 0) {
-    $del_media = $conn->prepare("DELETE FROM media_library WHERE id = ?");
+    $del_media = $conn->prepare("DELETE FROM media WHERE id = ?");
     $del_media->bind_param("i", $media_id);
     if (!$del_media->execute()) {
         $conn->rollback();
@@ -83,4 +83,4 @@ if (!empty($file_path)) {
 }
 
 json_response(['success' => true, 'message' => 'Đã xóa ảnh thành công'], HttpStatus::OK);
-
+?>

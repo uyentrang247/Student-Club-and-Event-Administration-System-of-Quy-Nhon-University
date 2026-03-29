@@ -11,7 +11,7 @@ $user_id = $_SESSION['user_id'];
 $event_id = $_GET['event_id'] ?? 0;
 
 // Lấy thông tin sự kiện
-$sql = "SELECT e.*, c.ten_clb 
+$sql = "SELECT e.*, c.name AS club_name 
         FROM events e 
         JOIN clubs c ON e.club_id = c.id 
         WHERE e.id = ?";
@@ -32,9 +32,9 @@ $stmt->execute();
 $is_registered = $stmt->get_result()->num_rows > 0;
 
 // Format thời gian
-$start_time = date('H:i', strtotime($event['thoi_gian_bat_dau']));
-$end_time = date('H:i', strtotime($event['thoi_gian_ket_thuc']));
-$event_date = date('d/m/Y', strtotime($event['thoi_gian_bat_dau']));
+$start_time = date('H:i', strtotime($event['start_time']));
+$end_time = date('H:i', strtotime($event['end_time']));
+$event_date = date('d/m/Y', strtotime($event['start_time']));
 ?>
 
 <div id="joinEventModal" class="modal">
@@ -47,7 +47,7 @@ $event_date = date('d/m/Y', strtotime($event['thoi_gian_bat_dau']));
         <div class="modal-body">
             <!-- Thông tin sự kiện -->
             <div class="event-info-card">
-                <h3><?php echo htmlspecialchars($event['ten_su_kien']); ?></h3>
+                <h3><?php echo htmlspecialchars($event['name']); ?></h3>
                 <div class="event-details">
                     <div class="detail-item">
                         <span class="icon">📅</span>
@@ -55,11 +55,11 @@ $event_date = date('d/m/Y', strtotime($event['thoi_gian_bat_dau']));
                     </div>
                     <div class="detail-item">
                         <span class="icon">📍</span>
-                        <span><?php echo htmlspecialchars($event['dia_diem']); ?></span>
+                        <span><?php echo htmlspecialchars($event['location']); ?></span>
                     </div>
                     <div class="detail-item">
                         <span class="icon">👥</span>
-                        <span><?php echo htmlspecialchars($event['ten_clb']); ?></span>
+                        <span><?php echo htmlspecialchars($event['club_name']); ?></span>
                     </div>
                 </div>
             </div>
@@ -78,19 +78,20 @@ $event_date = date('d/m/Y', strtotime($event['thoi_gian_bat_dau']));
                     <div class="form-group">
                         <label for="fullname">Họ và tên *</label>
                         <input type="text" id="fullname" name="fullname" required 
-                               value="<?php echo htmlspecialchars($_SESSION['user_name'] ?? ''); ?>">
+                               value="<?php echo htmlspecialchars($_SESSION['full_name'] ?? $_SESSION['user_name'] ?? ''); ?>">
                     </div>
 
                     <div class="form-group">
                         <label for="email">Email *</label>
                         <input type="email" id="email" name="email" required 
-                               value="<?php echo htmlspecialchars($_SESSION['user_email'] ?? ''); ?>">
+                               value="<?php echo htmlspecialchars($_SESSION['email'] ?? $_SESSION['user_email'] ?? ''); ?>">
                     </div>
 
                     <div class="form-group">
                         <label for="phone">Số điện thoại *</label>
                         <input type="tel" id="phone" name="phone" required 
-                               placeholder="Nhập số điện thoại của bạn">
+                               placeholder="Nhập số điện thoại của bạn"
+                               value="<?php echo htmlspecialchars($_SESSION['phone'] ?? ''); ?>">
                     </div>
 
                     <div class="form-group">

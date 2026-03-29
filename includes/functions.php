@@ -229,7 +229,6 @@ function delete_file($filepath) {
 
 /**
  * Format datetime for display
- * Wrapped in function_exists để tránh đụng độ các file xử lý có hàm cùng tên.
  */
 if (!function_exists('format_datetime')) {
     function format_datetime($datetime, $format = 'd/m/Y H:i') {
@@ -249,100 +248,100 @@ if (!function_exists('format_datetime_input')) {
 }
 
 /**
- * Get user role in club
+ * Get user role in club (Database mới: bảng members)
  */
 function get_user_role_in_club($conn, $user_id, $club_id) {
-    $stmt = $conn->prepare("SELECT vai_tro FROM club_members WHERE user_id = ? AND club_id = ? AND trang_thai = ?");
-    $status = MemberStatus::DANG_HOAT_DONG;
+    $stmt = $conn->prepare("SELECT role FROM members WHERE user_id = ? AND club_id = ? AND status = ?");
+    $status = MemberStatus::ACTIVE;
     $stmt->bind_param("iis", $user_id, $club_id, $status);
     $stmt->execute();
     $result = $stmt->get_result();
     
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
-        return $row['vai_tro'];
+        return $row['role'];
     }
     
     return null;
 }
 
 /**
- * Get user role label in club (including department name for truong_ban)
+ * Get user role label in club (including department name for head)
  */
 function get_user_role_label_in_club($conn, $user_id, $club_id) {
-    // Kiểm tra xem user có phải là đội trưởng không
-    $stmt = $conn->prepare("SELECT chu_nhiem_id FROM clubs WHERE id = ?");
+    // Kiểm tra xem user có phải là leader của CLB không
+    $stmt = $conn->prepare("SELECT leader_id FROM clubs WHERE id = ?");
     $stmt->bind_param("i", $club_id);
     $stmt->execute();
     $result = $stmt->get_result();
     if ($result->num_rows > 0) {
         $club = $result->fetch_assoc();
-        if ($club['chu_nhiem_id'] == $user_id) {
+        if ($club['leader_id'] == $user_id) {
             $stmt->close();
             return 'Đội trưởng';
         }
     }
     $stmt->close();
     
-    // Kiểm tra vai trò trong club_members
+    // Kiểm tra vai trò trong bảng members
     $role = get_user_role_in_club($conn, $user_id, $club_id);
     
-    if ($role === 'doi_truong') {
+    if ($role === 'leader') {
         return 'Đội trưởng';
-    } elseif ($role === 'doi_pho') {
+    } elseif ($role === 'vice_leader') {
         return 'Đội phó';
-    } elseif ($role === 'truong_ban') {
-        // Kiểm tra xem user có phải là trưởng phòng ban không
-        $pb_stmt = $conn->prepare("SELECT ten_phong_ban FROM phong_ban WHERE club_id = ? AND truong_phong_id = ?");
-        $pb_stmt->bind_param("ii", $club_id, $user_id);
-        $pb_stmt->execute();
-        $pb_result = $pb_stmt->get_result();
-        if ($pb_result->num_rows > 0) {
-            $pb_data = $pb_result->fetch_assoc();
-            $pb_stmt->close();
-            return 'Trưởng ban ' . $pb_data['ten_phong_ban'];
+    } elseif ($role === 'head') {
+        // Kiểm tra xem user có phải là head của phòng ban không
+        $dept_stmt = $conn->prepare("SELECT name FROM departments WHERE club_id = ? AND head_id = ?");
+        $dept_stmt->bind_param("ii", $club_id, $user_id);
+        $dept_stmt->execute();
+        $dept_result = $dept_stmt->get_result();
+        if ($dept_result->num_rows > 0) {
+            $dept_data = $dept_result->fetch_assoc();
+            $dept_stmt->close();
+            return 'Trưởng ban ' . $dept_data['name'];
         }
-        $pb_stmt->close();
+        $dept_stmt->close();
         return 'Trưởng ban';
     }
     
-    return UserRole::getLabel($role ?? 'thanh_vien');
+    return UserRole::getLabel($role ?? 'member');
 }
 
 /**
  * Check if user can manage club
  */
 function can_manage_club($conn, $user_id, $club_id) {
-    // Kiểm tra xem user có phải là đội trưởng trong bảng clubs không
-    $stmt = $conn->prepare("SELECT chu_nhiem_id FROM clubs WHERE id = ?");
+    // Kiểm tra xem user có phải là leader trong bảng clubs không
+    $stmt = $conn->prepare("SELECT leader_id FROM clubs WHERE id = ?");
     $stmt->bind_param("i", $club_id);
     $stmt->execute();
     $result = $stmt->get_result();
     
     if ($result->num_rows > 0) {
         $club = $result->fetch_assoc();
-        if ($club['chu_nhiem_id'] == $user_id) {
+        if ($club['leader_id'] == $user_id) {
             $stmt->close();
             return true;
         }
     }
     $stmt->close();
     
-    // Kiểm tra vai trò trong bảng club_members
+    // Kiểm tra vai trò trong bảng members
     $role = get_user_role_in_club($conn, $user_id, $club_id);
     if (UserRole::isAdmin($role)) {
         return true;
     }
     
-    // Kiểm tra xem user có phải là trưởng phòng ban không
-    $pb_stmt = $conn->prepare("SELECT id FROM phong_ban WHERE club_id = ? AND truong_phong_id = ?");
-    $pb_stmt->bind_param("ii", $club_id, $user_id);
-    $pb_stmt->execute();
-    $pb_result = $pb_stmt->get_result();
-    $is_truong_ban = $pb_result->num_rows > 0;
-    $pb_stmt->close();
+    // Kiểm tra xem user có phải là head của phòng ban không
+    $dept_stmt = $conn->prepare("SELECT id FROM departments WHERE club_id = ? AND head_id = ?");
+    $dept_stmt->bind_param("ii", $club_id, $user_id);
+    $dept_stmt->execute();
+    $dept_result = $dept_stmt->get_result();
+    $is_head = $dept_result->num_rows > 0;
+    $dept_stmt->close();
     
-    return $is_truong_ban;
+    return $is_head;
 }
 
 /**

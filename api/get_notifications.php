@@ -44,9 +44,9 @@ if ($stmt = $conn->prepare($sql)) {
             if (preg_match('/club_id=(\d+)/', $row['link'], $matches)) {
                 $row['club_id'] = (int)$matches[1];
             } else {
-                // Nếu không có club_id trong link, lấy từ club_members
+                // Nếu không có club_id trong link, lấy từ members
                 if ($row['member_id']) {
-                    $get_club_sql = "SELECT club_id FROM club_members WHERE id = ? LIMIT 1";
+                    $get_club_sql = "SELECT club_id FROM members WHERE id = ? LIMIT 1";
                     if ($stmt_club = $conn->prepare($get_club_sql)) {
                         $stmt_club->bind_param("i", $row['member_id']);
                         $stmt_club->execute();
@@ -62,7 +62,7 @@ if ($stmt = $conn->prepare($sql)) {
             
             // Kiểm tra trạng thái yêu cầu nếu có member_id
             if ($row['member_id']) {
-                $check_status_sql = "SELECT trang_thai FROM club_members WHERE id = ?";
+                $check_status_sql = "SELECT status FROM members WHERE id = ?";
                 if ($stmt_status = $conn->prepare($check_status_sql)) {
                     $stmt_status->bind_param("i", $row['member_id']);
                     $stmt_status->execute();
@@ -70,9 +70,9 @@ if ($stmt = $conn->prepare($sql)) {
                     
                     if ($status_result->num_rows > 0) {
                         $status_data = $status_result->fetch_assoc();
-                        if ($status_data['trang_thai'] === 'dang_hoat_dong') {
+                        if ($status_data['status'] === 'active') {
                             $row['request_status'] = 'approved';
-                        } elseif ($status_data['trang_thai'] === 'cho_duyet') {
+                        } elseif ($status_data['status'] === 'pending') {
                             $row['request_status'] = 'pending';
                         } else {
                             $row['request_status'] = 'rejected';
@@ -95,3 +95,4 @@ if ($stmt = $conn->prepare($sql)) {
 }
 
 // Don't close connection - it's managed globally
+?>

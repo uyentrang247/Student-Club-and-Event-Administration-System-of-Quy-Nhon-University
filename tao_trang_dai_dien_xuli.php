@@ -28,16 +28,16 @@ if ($club_id <= 0) {
 
 // Lấy dữ liệu từ form
 $slogan = $_POST['slogan'] ?? '';
-$description = $_POST['description'] ?? '';
+$about = $_POST['about'] ?? '';
 $primary_color = $_POST['primary_color'] ?? '#667eea';
 $facebook = $_POST['facebook'] ?? '';
 $instagram = $_POST['instagram'] ?? '';
 $twitter = $_POST['twitter'] ?? '';
 $website = $_POST['website'] ?? '';
-// Đọc giá trị is_public từ hidden input (luôn có giá trị 0 hoặc 1)
+// Đọc giá trị is_public từ hidden input
 $is_public = isset($_POST['is_public']) ? (int)$_POST['is_public'] : 1;
 
-// Xử lý upload ảnh bìa vào media_library
+// Xử lý upload ảnh bìa vào media
 $banner_id = null;
 $old_banner_id = null;
 
@@ -48,7 +48,7 @@ if (isset($_FILES['banner']) && $_FILES['banner']['error'] == UPLOAD_ERR_OK) {
     
     if (in_array($ext, $allowed)) {
         // Lấy banner_id cũ để xóa sau
-        $check_old = $conn->prepare("SELECT banner_id FROM club_pages WHERE club_id = ?");
+        $check_old = $conn->prepare("SELECT banner_id FROM pages WHERE club_id = ?");
         $check_old->bind_param("i", $club_id);
         $check_old->execute();
         $old_result = $check_old->get_result();
@@ -73,25 +73,24 @@ if (isset($_FILES['banner']) && $_FILES['banner']['error'] == UPLOAD_ERR_OK) {
         }
         
         if (move_uploaded_file($_FILES['banner']['tmp_name'], $upload_path)) {
-            // Kiểm tra file đã được upload thành công
             if (file_exists($upload_path) && filesize($upload_path) > 0) {
-                // Lưu vào media_library
-                $stmtMedia = $conn->prepare("INSERT INTO media_library (file_path, uploader_id) VALUES (?, ?)");
+                // Lưu vào media
+                $stmtMedia = $conn->prepare("INSERT INTO media (path, uploader_id) VALUES (?, ?)");
                 if ($stmtMedia) {
                     $stmtMedia->bind_param("si", $relative_path, $user_id);
                     if ($stmtMedia->execute()) {
                         $banner_id = $conn->insert_id;
-                        error_log("Banner uploaded to media_library: ID=$banner_id, Path=$relative_path");
+                        error_log("Banner uploaded to media: ID=$banner_id, Path=$relative_path");
                         
-                        // Xóa banner cũ từ media_library và file system nếu có
+                        // Xóa banner cũ từ media và file system nếu có
                         if ($old_banner_id) {
-                            $get_old_banner = $conn->prepare("SELECT file_path FROM media_library WHERE id = ?");
+                            $get_old_banner = $conn->prepare("SELECT path FROM media WHERE id = ?");
                             $get_old_banner->bind_param("i", $old_banner_id);
                             $get_old_banner->execute();
                             $old_banner_result = $get_old_banner->get_result();
                             if ($old_banner_result->num_rows > 0) {
                                 $old_banner_data = $old_banner_result->fetch_assoc();
-                                $old_banner_path = $old_banner_data['file_path'] ?? null;
+                                $old_banner_path = $old_banner_data['path'] ?? null;
                                 if ($old_banner_path) {
                                     $old_banner_full = (strpos($old_banner_path, '/') === 0 || strpos($old_banner_path, 'C:') === 0) 
                                         ? $old_banner_path 
@@ -104,20 +103,20 @@ if (isset($_FILES['banner']) && $_FILES['banner']['error'] == UPLOAD_ERR_OK) {
                             }
                             $get_old_banner->close();
                             
-                            // Xóa record trong media_library
-                            $delete_old = $conn->prepare("DELETE FROM media_library WHERE id = ?");
+                            // Xóa record trong media
+                            $delete_old = $conn->prepare("DELETE FROM media WHERE id = ?");
                             $delete_old->bind_param("i", $old_banner_id);
                             $delete_old->execute();
                             $delete_old->close();
-                            error_log("Old banner deleted from media_library: ID=$old_banner_id");
+                            error_log("Old banner deleted from media: ID=$old_banner_id");
                         }
                     } else {
-                        error_log("Failed to insert banner into media_library: " . $stmtMedia->error);
+                        error_log("Failed to insert banner into media: " . $stmtMedia->error);
                         @unlink($upload_path);
                     }
                     $stmtMedia->close();
                 } else {
-                    error_log("Failed to prepare media_library insert: " . $conn->error);
+                    error_log("Failed to prepare media insert: " . $conn->error);
                     @unlink($upload_path);
                 }
             } else {
@@ -137,7 +136,7 @@ if (isset($_FILES['banner']) && $_FILES['banner']['error'] == UPLOAD_ERR_OK) {
     error_log("Banner upload error: " . $_FILES['banner']['error']);
 }
 
-// Xử lý upload logo/avatar vào media_library
+// Xử lý upload logo/avatar vào media
 $logo_id = null;
 $old_logo_id = null;
 
@@ -148,7 +147,7 @@ if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] == 0) {
     
     if (in_array($ext, $allowed)) {
         // Lấy logo_id cũ để xóa sau
-        $check_old = $conn->prepare("SELECT logo_id FROM club_pages WHERE club_id = ?");
+        $check_old = $conn->prepare("SELECT logo_id FROM pages WHERE club_id = ?");
         $check_old->bind_param("i", $club_id);
         $check_old->execute();
         $old_result = $check_old->get_result();
@@ -168,23 +167,23 @@ if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] == 0) {
         
         if (move_uploaded_file($_FILES['avatar']['tmp_name'], $upload_path)) {
             if (file_exists($upload_path) && filesize($upload_path) > 0) {
-                // Lưu vào media_library
-                $stmtMedia = $conn->prepare("INSERT INTO media_library (file_path, uploader_id) VALUES (?, ?)");
+                // Lưu vào media
+                $stmtMedia = $conn->prepare("INSERT INTO media (path, uploader_id) VALUES (?, ?)");
                 if ($stmtMedia) {
                     $stmtMedia->bind_param("si", $relative_path, $user_id);
                     if ($stmtMedia->execute()) {
                         $logo_id = $conn->insert_id;
-                        error_log("Logo uploaded to media_library: ID=$logo_id, Path=$relative_path");
+                        error_log("Logo uploaded to media: ID=$logo_id, Path=$relative_path");
                         
-                        // Xóa logo cũ từ media_library và file system nếu có
+                        // Xóa logo cũ từ media và file system nếu có
                         if ($old_logo_id) {
-                            $get_old_logo = $conn->prepare("SELECT file_path FROM media_library WHERE id = ?");
+                            $get_old_logo = $conn->prepare("SELECT path FROM media WHERE id = ?");
                             $get_old_logo->bind_param("i", $old_logo_id);
                             $get_old_logo->execute();
                             $old_logo_result = $get_old_logo->get_result();
                             if ($old_logo_result->num_rows > 0) {
                                 $old_logo_data = $old_logo_result->fetch_assoc();
-                                $old_logo_path = $old_logo_data['file_path'] ?? null;
+                                $old_logo_path = $old_logo_data['path'] ?? null;
                                 if ($old_logo_path) {
                                     $old_logo_full = (strpos($old_logo_path, '/') === 0 || strpos($old_logo_path, 'C:') === 0) 
                                         ? $old_logo_path 
@@ -197,20 +196,20 @@ if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] == 0) {
                             }
                             $get_old_logo->close();
                             
-                            // Xóa record trong media_library
-                            $delete_old = $conn->prepare("DELETE FROM media_library WHERE id = ?");
+                            // Xóa record trong media
+                            $delete_old = $conn->prepare("DELETE FROM media WHERE id = ?");
                             $delete_old->bind_param("i", $old_logo_id);
                             $delete_old->execute();
                             $delete_old->close();
-                            error_log("Old logo deleted from media_library: ID=$old_logo_id");
+                            error_log("Old logo deleted from media: ID=$old_logo_id");
                         }
                     } else {
-                        error_log("Failed to insert logo into media_library: " . $stmtMedia->error);
+                        error_log("Failed to insert logo into media: " . $stmtMedia->error);
                         @unlink($upload_path);
                     }
                     $stmtMedia->close();
                 } else {
-                    error_log("Failed to prepare media_library insert: " . $conn->error);
+                    error_log("Failed to prepare media insert: " . $conn->error);
                     @unlink($upload_path);
                 }
             } else {
@@ -230,9 +229,9 @@ $update_fields = [];
 $params = [];
 $types = '';
 
-if ($description) {
-    $update_fields[] = "mo_ta = ?";
-    $params[] = $description;
+if ($about) {
+    $update_fields[] = "description = ?";
+    $params[] = $about;
     $types .= 's';
 }
 
@@ -254,8 +253,8 @@ if (!empty($update_fields)) {
     $stmt->close();
 }
 
-// Insert hoặc Update thông tin trang đại diện vào club_pages
-$check_sql = "SELECT * FROM club_pages WHERE club_id = ?";
+// Insert hoặc Update thông tin trang đại diện vào pages
+$check_sql = "SELECT * FROM pages WHERE club_id = ?";
 $check_stmt = $conn->prepare($check_sql);
 if (!$check_stmt) {
     error_log("Prepare check failed: " . $conn->error);
@@ -266,7 +265,7 @@ $check_stmt->execute();
 $existing = $check_stmt->get_result()->fetch_assoc();
 $check_stmt->close();
 
-error_log("Processing club_pages - Club ID: $club_id, Existing: " . ($existing ? 'YES' : 'NO') . ", Banner ID: " . ($banner_id ?? 'NULL') . ", Logo ID: " . ($logo_id ?? 'NULL'));
+error_log("Processing pages - Club ID: $club_id, Existing: " . ($existing ? 'YES' : 'NO') . ", Banner ID: " . ($banner_id ?? 'NULL') . ", Logo ID: " . ($logo_id ?? 'NULL'));
 
 $stmt = null;
 $sql = '';
@@ -281,8 +280,8 @@ if ($existing) {
     $update_params[] = $slogan;
     $update_types .= 's';
     
-    $update_parts[] = "description = ?";
-    $update_params[] = $description;
+    $update_parts[] = "about = ?";
+    $update_params[] = $about;
     $update_types .= 's';
     
     // Update banner_id nếu có banner mới upload
@@ -312,7 +311,7 @@ if ($existing) {
     $update_params[] = $club_id;
     $update_types .= 'i';
     
-    $sql = "UPDATE club_pages SET " . implode(", ", $update_parts) . " WHERE club_id = ?";
+    $sql = "UPDATE pages SET " . implode(", ", $update_parts) . " WHERE club_id = ?";
     
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
@@ -327,7 +326,7 @@ if ($existing) {
     }
 } else {
     // INSERT mới
-    $sql = "INSERT INTO club_pages (club_id, slogan, description, banner_id, logo_id, primary_color, is_public)
+    $sql = "INSERT INTO pages (club_id, slogan, about, banner_id, logo_id, primary_color, is_public)
             VALUES (?, ?, ?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($sql);
@@ -339,7 +338,7 @@ if ($existing) {
     if (!$stmt->bind_param("issiisi", 
         $club_id, 
         $slogan, 
-        $description, 
+        $about, 
         $banner_id, 
         $logo_id, 
         $primary_color, 
@@ -351,7 +350,7 @@ if ($existing) {
     }
 }
 
-// Thực thi câu lệnh club_pages
+// Thực thi câu lệnh pages
 if (!$stmt) {
     error_log("ERROR: Statement is null!");
     redirect("tao_trang_dai_dien.php?id=$club_id", 'Lỗi: Không thể tạo câu lệnh SQL!', 'error');
@@ -362,29 +361,29 @@ $execute_result = $stmt->execute();
 if ($execute_result) {
     $stmt->close();
     
-    // Lưu social links và website vào club_contacts
-    $check_contact = $conn->prepare("SELECT id FROM club_contacts WHERE club_id = ?");
+    // Lưu social links và website vào contacts
+    $check_contact = $conn->prepare("SELECT id FROM contacts WHERE club_id = ?");
     $check_contact->bind_param("i", $club_id);
     $check_contact->execute();
     $contact_exists = $check_contact->get_result()->num_rows > 0;
     $check_contact->close();
     
     if ($contact_exists) {
-        // UPDATE club_contacts
-        $update_contact = $conn->prepare("UPDATE club_contacts SET facebook = ?, instagram = ?, twitter = ?, website = ? WHERE club_id = ?");
+        // UPDATE contacts
+        $update_contact = $conn->prepare("UPDATE contacts SET facebook = ?, instagram = ?, twitter = ?, website = ? WHERE club_id = ?");
         $update_contact->bind_param("ssssi", $facebook, $instagram, $twitter, $website, $club_id);
         $update_contact->execute();
         $update_contact->close();
     } else {
-        // INSERT club_contacts
-        $insert_contact = $conn->prepare("INSERT INTO club_contacts (club_id, facebook, instagram, twitter, website) VALUES (?, ?, ?, ?, ?)");
+        // INSERT contacts
+        $insert_contact = $conn->prepare("INSERT INTO contacts (club_id, facebook, instagram, twitter, website) VALUES (?, ?, ?, ?, ?)");
         $insert_contact->bind_param("issss", $club_id, $facebook, $instagram, $twitter, $website);
         $insert_contact->execute();
         $insert_contact->close();
     }
     
     // Verify database update
-    $verify_sql = "SELECT banner_id, logo_id, is_public FROM club_pages WHERE club_id = ?";
+    $verify_sql = "SELECT banner_id, logo_id, is_public FROM pages WHERE club_id = ?";
     $verify_stmt = $conn->prepare($verify_sql);
     $verify_stmt->bind_param("i", $club_id);
     $verify_stmt->execute();

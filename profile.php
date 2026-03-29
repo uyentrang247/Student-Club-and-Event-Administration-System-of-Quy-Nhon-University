@@ -95,10 +95,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['avatar'])) {
     
     <div class="profile-header">
         <?php
-            $ho_ten_safe   = $user['ho_ten']   ?? '';
+            $full_name_safe = $user['full_name'] ?? $user['ho_ten'] ?? '';
             $username_safe = $user['username'] ?? '';
-            $avatar_path   = $user['avatar']   ?? '';
-            $avatar_letter = strtoupper(substr($ho_ten_safe ?: 'U', 0, 1));
+            $avatar_path   = $user['avatar'] ?? '';
+            $avatar_letter = strtoupper(substr($full_name_safe ?: 'U', 0, 1));
         ?>
         <div class="avatar-upload-wrapper">
             <?php if (!empty($avatar_path) && file_exists($avatar_path)): ?>
@@ -117,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['avatar'])) {
             </form>
         </div>
         
-        <h1><?php echo htmlspecialchars($ho_ten_safe ?: 'Chưa cập nhật'); ?></h1>
+        <h1><?php echo htmlspecialchars($full_name_safe ?: 'Chưa cập nhật'); ?></h1>
         <p class="username">@<?php echo htmlspecialchars($username_safe ?: ''); ?></p>
     </div>
 
@@ -132,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['avatar'])) {
                 </div>
                 <div class="info-item">
                     <span class="info-label">📱 Số điện thoại</span>
-                    <span class="info-value"><?php echo htmlspecialchars($user['so_dien_thoai'] ?? 'Chưa cập nhật'); ?></span>
+                    <span class="info-value"><?php echo htmlspecialchars($user['phone'] ?? $user['so_dien_thoai'] ?? 'Chưa cập nhật'); ?></span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">🎓 Mã sinh viên</span>
@@ -140,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['avatar'])) {
                 </div>
                 <div class="info-item">
                     <span class="info-label">🏫 Lớp</span>
-                    <span class="info-value"><?php echo htmlspecialchars($user['class'] ?? 'Chưa cập nhật'); ?></span>
+                    <span class="info-value"><?php echo htmlspecialchars($user['class_name'] ?? $user['class'] ?? 'Chưa cập nhật'); ?></span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">📚 Khoa</span>
@@ -148,7 +148,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['avatar'])) {
                 </div>
                 <div class="info-item">
                     <span class="info-label">👤 Giới tính</span>
-                    <span class="info-value"><?php echo ucfirst($user['gender'] ?? 'Khác'); ?></span>
+                    <span class="info-value">
+                        <?php 
+                            $gender = $user['gender'] ?? 'other';
+                            if ($gender === 'male') echo 'Nam';
+                            elseif ($gender === 'female') echo 'Nữ';
+                            else echo 'Khác';
+                        ?>
+                    </span>
                 </div>
             </div>
             <button class="btn-edit" onclick="location.href='edit-profile.php'">Chỉnh sửa hồ sơ</button>

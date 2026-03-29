@@ -32,7 +32,7 @@ if (!can_manage_club($conn, $user_id, $club_id)) {
 
 // === 5. Lấy thông tin CLB từ database ===
 $club_info = null;
-$stmt = $conn->prepare("SELECT ten_clb, mo_ta, color FROM clubs WHERE id = ?");
+$stmt = $conn->prepare("SELECT name, description, color FROM clubs WHERE id = ?");
 $stmt->bind_param("i", $club_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -43,9 +43,9 @@ $stmt->close();
 
 // Lấy thông tin trang đại diện (slogan, banner, etc.)
 $club_page = null;
-$table_check = $conn->query("SHOW TABLES LIKE 'club_pages'");
+$table_check = $conn->query("SHOW TABLES LIKE 'pages'");
 if ($table_check && $table_check->num_rows > 0) {
-    $stmt = $conn->prepare("SELECT cp.slogan, logo.file_path AS logo_path FROM club_pages cp LEFT JOIN media_library logo ON cp.logo_id = logo.id WHERE cp.club_id = ?");
+    $stmt = $conn->prepare("SELECT p.slogan, logo.path AS logo_path FROM pages p LEFT JOIN media logo ON p.logo_id = logo.id WHERE p.club_id = ?");
     $stmt->bind_param("i", $club_id);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -80,7 +80,7 @@ load_header();
     <div class="club-info-card">
         <div class="club-logo">
             <?php 
-            // Ưu tiên logo từ club_pages nếu có
+            // Ưu tiên logo từ pages nếu có
             $logo_display = '';
             if ($club_page && !empty($club_page['logo_path'])) {
                 $logo_display = $club_page['logo_path'];
@@ -96,9 +96,9 @@ load_header();
             <?php endif; ?>
         </div>
         <div class="club-details">
-            <h3><?= htmlspecialchars($club_info['ten_clb'] ?? 'Chưa có tên CLB') ?></h3>
+            <h3><?= htmlspecialchars($club_info['name'] ?? 'Chưa có tên CLB') ?></h3>
             <p class="club-slogan"><?= htmlspecialchars($club_page['slogan'] ?? 'Chưa có slogan') ?></p>
-            <p class="club-desc"><?= htmlspecialchars($club_info['mo_ta'] ?? 'Chưa có mô tả') ?></p>
+            <p class="club-desc"><?= htmlspecialchars($club_info['description'] ?? 'Chưa có mô tả') ?></p>
         </div>
     </div>
     <?php endif; ?>

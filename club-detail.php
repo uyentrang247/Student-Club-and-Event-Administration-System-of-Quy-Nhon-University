@@ -21,7 +21,7 @@ $user_id = $_SESSION['user_id'];
 // Lấy ID CLB từ URL
 $club_id = get_club_id();
 
-// Lấy thông tin CLB
+// Lấy thông tin CLB với cấu trúc database mới
 $sql = "SELECT * FROM clubs WHERE id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $club_id);
@@ -35,28 +35,27 @@ if (!$club) {
     exit();
 }
 
-// Lấy thông tin trang đại diện từ club_pages (bao gồm banner/logo từ media_library)
+// Lấy thông tin trang đại diện từ pages (bao gồm banner/logo từ media)
 $club_page = null;
 try {
-    // Kiểm tra xem bảng club_pages có tồn tại không
-    $table_check = $conn->query("SHOW TABLES LIKE 'club_pages'");
+    // Kiểm tra xem bảng pages có tồn tại không
+    $table_check = $conn->query("SHOW TABLES LIKE 'pages'");
     if ($table_check && $table_check->num_rows > 0) {
         $sql = "SELECT 
-                    cp.*,
-                    banner.file_path AS banner_path,
-                    logo.file_path AS logo_path
-                FROM club_pages cp
-                LEFT JOIN media_library banner ON cp.banner_id = banner.id
-                LEFT JOIN media_library logo ON cp.logo_id = logo.id
-                WHERE cp.club_id = ?";
+                    p.*,
+                    banner.path AS banner_path,
+                    logo.path AS logo_path
+                FROM pages p
+                LEFT JOIN media banner ON p.banner_id = banner.id
+                LEFT JOIN media logo ON p.logo_id = logo.id
+                WHERE p.club_id = ?";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("i", $club_id);
         $stmt->execute();
         $result = $stmt->get_result();
         if ($result->num_rows > 0) {
             $club_page = $result->fetch_assoc();
-            // Merge thông tin từ club_pages vào $club
-            // Banner và logo được lấy từ media_library
+            // Merge thông tin từ pages vào $club
             if (!empty($club_page['banner_path'] ?? null)) {
                 $club['banner_url'] = $club_page['banner_path'];
             }
@@ -65,8 +64,8 @@ try {
                 $club['logo'] = $club_page['logo_path'];
                 $club['logo_url'] = $club_page['logo_path'];
             }
-            if (!empty($club_page['description'] ?? null)) {
-                $club['mo_ta'] = $club_page['description'];
+            if (!empty($club_page['about'] ?? null)) {
+                $club['description'] = $club_page['about'];
             }
             if (!empty($club_page['primary_color'] ?? null)) {
                 $club['color'] = $club_page['primary_color'];
@@ -76,16 +75,15 @@ try {
         }
     }
 } catch (Exception $e) {
-    // Bảng chưa tồn tại, bỏ qua
-    error_log("club_pages table not found: " . $e->getMessage());
+    error_log("pages table not found: " . $e->getMessage());
 }
 
 // Đảm bảo $club_page luôn là mảng để tránh undefined key
 $club_page = $club_page ?: [];
 
-// Lấy thông tin liên hệ từ club_contacts
+// Lấy thông tin liên hệ từ contacts
 try {
-    $contact_sql = "SELECT email, phone, website, facebook, instagram, twitter FROM club_contacts WHERE club_id = ?";
+    $contact_sql = "SELECT email, phone, website, facebook, instagram, twitter FROM contacts WHERE club_id = ?";
     $contact_stmt = $conn->prepare($contact_sql);
     $contact_stmt->bind_param("i", $club_id);
     $contact_stmt->execute();
@@ -116,8 +114,7 @@ try {
     }
     $contact_stmt->close();
 } catch (Exception $e) {
-    // Bảng chưa tồn tại, bỏ qua
-    error_log("club_contacts table not found: " . $e->getMessage());
+    error_log("contacts table not found: " . $e->getMessage());
 }
 
 // Bây giờ mới load header
@@ -127,22 +124,21 @@ load_header();
 
 // Đếm số thành viên (chỉ đếm thành viên đang hoạt động)
 require_once __DIR__ . '/includes/constants.php';
-$sql = "SELECT COUNT(*) as total FROM club_members WHERE club_id = ? AND trang_thai = ?";
+$sql = "SELECT COUNT(*) as total FROM members WHERE club_id = ? AND status = ?";
 $stmt = $conn->prepare($sql);
-$status_active = MemberStatus::DANG_HOAT_DONG;
+$status_active = MemberStatus::ACTIVE;
 $stmt->bind_param("is", $club_id, $status_active);
 $stmt->execute();
 $member_count = $stmt->get_result()->fetch_assoc()['total'];
 $stmt->close();
 
-// Kiểm tra user có phải đội trưởng không
-$is_owner = ($club['chu_nhiem_id'] == $user_id);
+// Kiểm tra user có phải leader không
+$is_owner = ($club['leader_id'] == $user_id);
 
 // Kiểm tra user đã tham gia chưa (chỉ tính thành viên đang hoạt động)
-require_once __DIR__ . '/includes/constants.php';
-$sql = "SELECT * FROM club_members WHERE club_id = ? AND user_id = ? AND trang_thai = ?";
+$sql = "SELECT * FROM members WHERE club_id = ? AND user_id = ? AND status = ?";
 $stmt = $conn->prepare($sql);
-$status_active = MemberStatus::DANG_HOAT_DONG;
+$status_active = MemberStatus::ACTIVE;
 $stmt->bind_param("iis", $club_id, $user_id, $status_active);
 $stmt->execute();
 $is_member = $stmt->get_result()->num_rows > 0;
@@ -151,13 +147,13 @@ $stmt->close();
 // Lấy danh sách thành viên (top 12)
 $members_result = [];
 try {
-    $sql = "SELECT u.id, u.ho_ten, u.avatar, cm.vai_tro 
-            FROM club_members cm 
-            JOIN users u ON cm.user_id = u.id 
-            WHERE cm.club_id = ? 
+    $sql = "SELECT u.id, u.full_name, u.avatar, m.role 
+            FROM members m 
+            JOIN users u ON m.user_id = u.id 
+            WHERE m.club_id = ? AND m.status = ?
             LIMIT 12";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $club_id);
+    $stmt->bind_param("is", $club_id, $status_active);
     $stmt->execute();
     $members = $stmt->get_result();
 } catch (Exception $e) {
@@ -165,9 +161,9 @@ try {
 }
 
 // Lấy thống kê CLB
-    $stats = ['total_events' => 0, 'rating' => 0.0];
+$stats = ['total_events' => 0, 'rating' => 0.0];
 try {
-    $sql = "SELECT * FROM club_stats WHERE club_id = ?";
+    $sql = "SELECT * FROM stats WHERE club_id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $club_id);
     $stmt->execute();
@@ -187,8 +183,8 @@ try {
 $events = [];
 try {
     $sql = "SELECT * FROM events 
-            WHERE club_id = ? AND trang_thai = 'sap_dien_ra' AND thoi_gian_bat_dau >= NOW()
-            ORDER BY thoi_gian_bat_dau ASC
+            WHERE club_id = ? AND status = 'upcoming' AND start_time >= NOW()
+            ORDER BY start_time ASC
             LIMIT 3";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $club_id);
@@ -217,12 +213,11 @@ if ($events && $events->num_rows > 0) {
 // Lấy gallery (4 ảnh gần nhất)
 $gallery = [];
 try {
-    // Lấy ảnh kèm đường dẫn từ media_library
-    $sql = "SELECT cg.*, ml.file_path AS image_url 
-            FROM club_gallery cg
-            LEFT JOIN media_library ml ON cg.media_id = ml.id
-            WHERE cg.club_id = ?
-            ORDER BY cg.uploaded_at DESC
+    $sql = "SELECT g.*, m.path AS image_url 
+            FROM gallery g
+            LEFT JOIN media m ON g.media_id = m.id
+            WHERE g.club_id = ?
+            ORDER BY g.uploaded_at DESC
             LIMIT 4";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $club_id);
@@ -235,7 +230,7 @@ try {
 // Lấy hoạt động gần đây (3 activities)
 $activities = [];
 try {
-    $sql = "SELECT * FROM club_activities 
+    $sql = "SELECT * FROM activities 
             WHERE club_id = ?
             ORDER BY created_at DESC
             LIMIT 3";
@@ -305,10 +300,9 @@ try {
                 $logo_display = $club['logo_url'];
             }
 
-            // Nhãn lĩnh vực: nếu rỗng hoặc = 0 thì hiển thị "Tình nguyện"
-            $category_label = trim((string)($club['linh_vuc'] ?? ''));
+            $category_label = trim((string)($club['category'] ?? ''));
             if ($category_label === '' || $category_label === '0') {
-                $category_label = 'Tình nguyện';
+                $category_label = 'Volunteer';
             }
             ?>
             <div class="club-badge" style="<?php echo !empty($logo_display) ? 'background: white; padding: 8px;' : 'background: ' . htmlspecialchars($club['color'] ?? '#667eea') . ';'; ?>">
@@ -317,14 +311,14 @@ try {
                     $logo_url = htmlspecialchars($logo_display);
                     $logo_url .= '?v=' . time();
                 ?>
-                    <img src="<?php echo $logo_url; ?>" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='<?php echo htmlspecialchars(strtoupper(substr($club['ten_clb'], 0, 3))); ?>';">
+                    <img src="<?php echo $logo_url; ?>" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='<?php echo htmlspecialchars(strtoupper(substr($club['name'], 0, 3))); ?>';">
                 <?php else: ?>
-                    <?php echo htmlspecialchars(strtoupper(substr($club['ten_clb'], 0, 3))); ?>
+                    <?php echo htmlspecialchars(strtoupper(substr($club['name'], 0, 3))); ?>
                 <?php endif; ?>
             </div>
             <div class="club-info">
                 <div class="club-category"><?php echo htmlspecialchars($category_label); ?></div>
-                <h1><?php echo htmlspecialchars($club['ten_clb']); ?></h1>
+                <h1><?php echo htmlspecialchars($club['name']); ?></h1>
                 <?php if (!empty($club_page['slogan'] ?? null)): ?>
                     <p class="club-slogan" style="font-style: italic; color: #667eea; margin: 8px 0;">
                         "<?php echo htmlspecialchars($club_page['slogan']); ?>"
@@ -332,7 +326,7 @@ try {
                 <?php endif; ?>
                 <div class="club-stats">
                     <span>👥 <?php echo $member_count; ?> thành viên</span>
-                    <span>📅 Thành lập <?php echo date('Y', strtotime($club['ngay_thanh_lap'] ?? 'now')); ?></span>
+                    <span>📅 Thành lập <?php echo date('Y', strtotime($club['founded_date'] ?? 'now')); ?></span>
                 </div>
             </div>
             <div class="club-actions">
@@ -360,7 +354,7 @@ try {
             <div class="section-card">
                 <h2>📖 Giới thiệu</h2>
                 <p class="club-description">
-                    <?php echo nl2br(htmlspecialchars($club['mo_ta'] ?? 'Chưa có mô tả')); ?>
+                    <?php echo nl2br(htmlspecialchars($club['description'] ?? 'Chưa có mô tả')); ?>
                 </p>
             </div>
 
@@ -397,9 +391,9 @@ try {
                 <div class="events-list">
                     <?php if ($events && $events->num_rows > 0): ?>
                         <?php while ($event = $events->fetch_assoc()): 
-                            $event_date = new DateTime($event['thoi_gian_bat_dau']);
+                            $event_date = new DateTime($event['start_time']);
                             $start_time = $event_date->format('H:i');
-                            $end_date = new DateTime($event['thoi_gian_ket_thuc']);
+                            $end_date = new DateTime($event['end_time']);
                             $end_time = $end_date->format('H:i');
                             $participants = $event_participants[$event['id']] ?? 0;
                         ?>
@@ -409,8 +403,8 @@ try {
                                 <div class="date-month">Th<?php echo $event_date->format('m'); ?></div>
                             </div>
                             <div class="event-info">
-                                <h4><?php echo htmlspecialchars($event['ten_su_kien']); ?></h4>
-                                <p>🕐 <?php echo $start_time; ?> - <?php echo $end_time; ?> | 📍 <?php echo htmlspecialchars($event['dia_diem'] ?? 'Chưa xác định'); ?></p>
+                                <h4><?php echo htmlspecialchars($event['name']); ?></h4>
+                                <p>🕐 <?php echo $start_time; ?> - <?php echo $end_time; ?> | 📍 <?php echo htmlspecialchars($event['location'] ?? 'Chưa xác định'); ?></p>
                                 <div class="event-participants">
                                     <span>👥 <?php echo $participants; ?> người tham gia</span>
                                 </div>
@@ -527,17 +521,16 @@ try {
                     <div class="info-item">
                         <span class="label">Lĩnh vực:</span>
                         <span class="value"><?php 
-                            // Sử dụng $category_label đã được xử lý ở trên
-                            $linh_vuc_display = trim((string)($club['linh_vuc'] ?? ''));
-                            if ($linh_vuc_display === '' || $linh_vuc_display === '0') {
-                                $linh_vuc_display = 'Tình nguyện';
+                            $category_display = trim((string)($club['category'] ?? ''));
+                            if ($category_display === '' || $category_display === '0') {
+                                $category_display = 'Volunteer';
                             }
-                            echo htmlspecialchars($linh_vuc_display);
+                            echo htmlspecialchars($category_display);
                         ?></span>
                     </div>
                     <div class="info-item">
                         <span class="label">Thành lập:</span>
-                        <span class="value"><?php echo date('d/m/Y', strtotime($club['ngay_thanh_lap'] ?? 'now')); ?></span>
+                        <span class="value"><?php echo date('d/m/Y', strtotime($club['founded_date'] ?? 'now')); ?></span>
                     </div>
                     <div class="info-item">
                         <span class="label">Trạng thái:</span>

@@ -3,7 +3,7 @@
     <!-- LEFT -->
     <div class="left">
         <a href="trangchu.php" class="logo">
-            <img src="assets/img/logoleaderclub.png" alt="LeaderClub Logo" class="logo-img">
+            <img src="assets/img/uniqclub_logo.png" alt="UniQClub Logo" class="logo-img">
             <span>UniQCLUB</span>
         </a>
     </div>
@@ -20,7 +20,7 @@
                     <span class="icon orange">📘</span>
                     <div>
                         <h4>Danh sách CLB</h4>
-                        <p>Khám phá các Câu Lạc Bộ phù hợp với bạn</p>
+                        <p>Kết nối với Câu Lạc Bộ bạn yêu thích</p>
                     </div>
                 </a>
 

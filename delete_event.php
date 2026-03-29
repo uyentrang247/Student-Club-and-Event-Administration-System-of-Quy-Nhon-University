@@ -11,8 +11,8 @@ if ($event_id <= 0) {
     exit;
 }
 
-// Lấy thông tin sự kiện và chủ nhiệm CLB
-$sql = "SELECT e.id, e.club_id, c.chu_nhiem_id 
+// Lấy thông tin sự kiện và leader của CLB
+$sql = "SELECT e.id, e.club_id, c.leader_id 
         FROM events e 
         LEFT JOIN clubs c ON e.club_id = c.id 
         WHERE e.id = ?";
@@ -28,10 +28,10 @@ if (!$event) {
     exit;
 }
 
-// Kiểm tra quyền: admin hệ thống hoặc chủ nhiệm CLB
+// Kiểm tra quyền: admin hệ thống hoặc leader của CLB
 $user_id = $_SESSION['user_id'] ?? 0;
 $is_admin = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
-$is_owner = ($event['chu_nhiem_id'] ?? 0) == $user_id;
+$is_owner = ($event['leader_id'] ?? 0) == $user_id;
 
 if (!$is_admin && !$is_owner) {
     echo json_encode(['success' => false, 'message' => 'Bạn không có quyền xóa sự kiện này.']);
@@ -55,4 +55,4 @@ if ($del_evt->execute()) {
 $del_evt->close();
 
 $conn->close();
-
+?>

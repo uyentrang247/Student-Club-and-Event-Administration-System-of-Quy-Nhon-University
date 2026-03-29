@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['find_account'])) {
         $error = "Vui lòng nhập tên đăng nhập hoặc email!";
     } else {
         // Tìm user theo username hoặc email
-        $stmt = $conn->prepare("SELECT id, username, email, ho_ten, password FROM users WHERE username = ? OR email = ?");
+        $stmt = $conn->prepare("SELECT id, username, email, full_name, password FROM users WHERE username = ? OR email = ?");
         $stmt->bind_param("ss", $identifier, $identifier);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['verify_email'])) {
     $user_id = $_SESSION['reset_user_id'] ?? 0;
     
     if ($user_id > 0) {
-        $stmt = $conn->prepare("SELECT id, username, email, ho_ten, password FROM users WHERE id = ? AND email = ?");
+        $stmt = $conn->prepare("SELECT id, username, email, full_name, password FROM users WHERE id = ? AND email = ?");
         $stmt->bind_param("is", $user_id, $email);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -84,8 +84,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['reset_password'])) {
     } elseif ($new_password !== $confirm_password) {
         $error = "Mật khẩu xác nhận không khớp!";
     } else {
+        $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
         $stmt = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
-        $stmt->bind_param("si", $new_password, $user_id);
+        $stmt->bind_param("si", $hashed_password, $user_id);
         
         if ($stmt->execute()) {
             $success = "Đặt lại mật khẩu thành công!";
@@ -101,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['reset_password'])) {
 // Lấy thông tin user nếu đang ở bước 2 hoặc 3
 if ($step >= 2 && isset($_SESSION['reset_user_id'])) {
     $user_id = $_SESSION['reset_user_id'];
-    $result = $conn->query("SELECT id, username, email, ho_ten, password FROM users WHERE id = $user_id");
+    $result = $conn->query("SELECT id, username, email, full_name, password FROM users WHERE id = $user_id");
     if ($result->num_rows === 1) {
         $user_data = $result->fetch_assoc();
     }
@@ -165,7 +166,7 @@ if ($step >= 2 && isset($_SESSION['reset_user_id'])) {
         <div class="info-box">
             <p><strong>Tài khoản tìm thấy:</strong></p>
             <p>Username: <strong><?php echo htmlspecialchars($user_data['username']); ?></strong></p>
-            <p>Họ tên: <strong><?php echo htmlspecialchars($user_data['ho_ten'] ?? 'Chưa cập nhật'); ?></strong></p>
+            <p>Họ tên: <strong><?php echo htmlspecialchars($user_data['full_name'] ?? 'Chưa cập nhật'); ?></strong></p>
         </div>
 
         <form method="POST" class="login-form">

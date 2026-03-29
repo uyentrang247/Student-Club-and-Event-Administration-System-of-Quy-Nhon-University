@@ -45,7 +45,7 @@ load_header();
         <button class="tab-btn active" data-filter="all">Tất cả</button>
         <button class="tab-btn" data-filter="unread">Chưa đọc</button>
         <button class="tab-btn" data-filter="club_join">CLB</button>
-        <button class="tab-btn" data-filter="event_invite">Sự kiện</button>
+        <button class="tab-btn" data-filter="event">Sự kiện</button>
     </div>
 
     <div class="notifications-body">
@@ -188,14 +188,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function getNotificationIcon(type) {
         const icons = {
             'club_join': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>',
-            'event_invite': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
-            'event_join': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
-            'club_invite': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>',
-            'event_invite': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>',
+            'event': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
+            'invite': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>',
             'role_change': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>',
-            'general': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+            'system': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
         };
-        return icons[type] || icons['general'];
+        return icons[type] || icons['system'];
     }
 
     function formatTimeAgo(dateString) {
@@ -294,21 +292,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success && data.request) {
                     showJoinRequestDetailModal(data.request, data.departments || [], memberId, notificationId, clubId);
                 } else {
-                    // Nếu không tìm thấy member, có thể đã bị từ chối (xóa)
-                    // Hiển thị modal với thông tin từ notification
-                    if (data.message && data.message.includes('Không tìm thấy')) {
-                        // Tạo request object giả với trạng thái rejected
+                    
+                if (data.message && data.message.includes('Không tìm thấy')) {
                         const rejectedRequest = {
                             member_status: 'rejected',
-                            ho_ten: 'Thành viên',
+                            full_name: 'Thành viên',
                             username: '',
                             email: '',
                             avatar: 'assets/img/avatars/user.svg',
                             user_phone: '',
-                            ten_clb: '',
-                            ten_phong_ban: '',
-                            phong_ban_id: null,
-                            loi_nhan: '',
+                            club_name: '',
+                            department_name: '',
+                            department_id: null,
+                            message: '',
                             requested_at: null
                         };
                         showJoinRequestDetailModal(rejectedRequest, [], memberId, notificationId, clubId);
@@ -336,14 +332,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const phone = request.request_phone || request.user_phone || 'Chưa cung cấp';
         
         // Format department
-        const currentDept = request.ten_phong_ban || 'Chưa phân công';
-        const currentDeptId = request.phong_ban_id || '';
+        const currentDept = request.department_name || 'Chưa phân công';
+        const currentDeptId = request.department_id || '';
         
         // Kiểm tra trạng thái yêu cầu
         const memberStatus = request.member_status || '';
-        const isApproved = memberStatus === 'dang_hoat_dong';
-        const isRejected = memberStatus === 'rejected' || memberStatus === 'tu_choi' || (!memberStatus && !request.ho_ten);
-        const isPending = memberStatus === 'cho_duyet' || (!isApproved && !isRejected);
+        const isApproved = memberStatus === 'active';
+        const isRejected = memberStatus === 'rejected' || memberStatus === 'tu_choi' || (!memberStatus && !request.full_name);
+        const isPending = memberStatus === 'pending' || (!isApproved && !isRejected);
         
         modal.innerHTML = `
             <div class="join-request-modal-backdrop"></div>
@@ -356,10 +352,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="join-request-modal-body">
                     <div class="request-user-info">
                         <div class="user-avatar-section">
-                            <img src="${avatarUrl}" alt="${request.ho_ten}" class="user-avatar-large">
+                            <img src="${avatarUrl}" alt="${request.full_name}" class="user-avatar-large">
                         </div>
                         <div class="user-details-section">
-                            <h4>${request.ho_ten}</h4>
+                            <h4>${request.full_name}</h4>
                             <p class="user-username">@${request.username}</p>
                             <div class="user-info-grid">
                                 <div class="info-item">
@@ -372,7 +368,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </div>
                                 <div class="info-item">
                                     <span class="info-label">CLB:</span>
-                                    <span class="info-value">${request.ten_clb}</span>
+                                    <span class="info-value">${request.club_name}</span>
                                 </div>
                                 <div class="info-item">
                                     <span class="info-label">Thời gian gửi:</span>
@@ -384,21 +380,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     <div class="request-form-section">
                         <div class="form-group">
-                            <label for="request_phong_ban">Phòng ban <span class="required">*</span></label>
-                            <select id="request_phong_ban" class="form-select" required>
+                            <label for="request_department">Phòng ban <span class="required">*</span></label>
+                            <select id="request_department" class="form-select" required>
                                 <option value="">-- Chọn phòng ban --</option>
                                 ${departments.map(d => `
-                                    <option value="${d.id}" ${d.id == currentDeptId ? 'selected' : ''}>${d.ten_phong_ban}</option>
+                                    <option value="${d.id}" ${d.id == currentDeptId ? 'selected' : ''}>${d.name}</option>
                                 `).join('')}
                             </select>
                             ${currentDeptId ? `<p class="form-hint">Phòng ban đã chọn: <strong>${currentDept}</strong></p>` : ''}
                         </div>
                         
-                        ${request.loi_nhan ? `
+                        ${request.message ? `
                             <div class="form-group">
                                 <label>Lời nhắn từ người gửi:</label>
                                 <div class="message-box">
-                                    <p>${request.loi_nhan}</p>
+                                    <p>${request.message}</p>
                                 </div>
                             </div>
                         ` : ''}
@@ -442,20 +438,20 @@ document.addEventListener('DOMContentLoaded', function() {
         
         document.body.appendChild(modal);
         
-        // Đóng modal khi click ra ngoài
+        
         modal.querySelector('.join-request-modal-backdrop').addEventListener('click', closeJoinRequestModal);
         
-        // Đóng modal khi click nút X
+        
         modal.querySelector('.join-request-modal-close').addEventListener('click', closeJoinRequestModal);
         
-        // Xử lý nút Từ chối
+       
         modal.querySelector('.btn-reject-modal').addEventListener('click', function() {
             const memberId = parseInt(this.dataset.memberId);
             const notificationId = parseInt(this.dataset.notificationId);
             handleRejectFromModal(memberId, notificationId);
         });
         
-        // Xử lý nút Duyệt
+       
         modal.querySelector('.btn-approve-modal').addEventListener('click', function() {
             const memberId = parseInt(this.dataset.memberId);
             const notificationId = parseInt(this.dataset.notificationId);
@@ -471,23 +467,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Xử lý duyệt từ modal
+    
     function handleApproveFromModal(memberId, notificationId, clubId) {
-        const phongBanSelect = document.getElementById('request_phong_ban');
-        const phongBanId = phongBanSelect ? phongBanSelect.value : '';
+        const departmentSelect = document.getElementById('request_department');
+        const departmentId = departmentSelect ? departmentSelect.value : '';
         
-        // Validation
-        if (!phongBanId || phongBanId <= 0) {
+        if (!departmentId || departmentId <= 0) {
             showNotification('Vui lòng chọn phòng ban trước khi duyệt', 'error');
-            phongBanSelect?.focus();
+            departmentSelect?.focus();
             return;
         }
         
-        // Lấy các nút
+        
         const approveBtn = document.querySelector('.btn-approve-modal');
         const rejectBtn = document.querySelector('.btn-reject-modal');
         
-        // Disable buttons và hiển thị loading
+        
         if (approveBtn) {
             approveBtn.disabled = true;
             approveBtn.innerHTML = `
@@ -502,10 +497,10 @@ document.addEventListener('DOMContentLoaded', function() {
             rejectBtn.disabled = true;
         }
         
-        // Gọi API
+        
         const formData = new FormData();
         formData.append('member_id', memberId);
-        formData.append('phong_ban_id', phongBanId);
+        formData.append('department_id', departmentId);
         if (CSRF_TOKEN) {
             formData.append(CSRF_FIELD, CSRF_TOKEN);
         }
@@ -518,17 +513,17 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success) {
                 showNotification('✅ Đã duyệt yêu cầu thành công!', 'success');
-                // Đánh dấu thông báo đã đọc
+                
                 markAsRead(notificationId, null);
-                // Đóng modal
+                
                 closeJoinRequestModal();
-                // Reload notifications sau 1 giây
+                
                 setTimeout(() => {
                     loadNotifications();
                 }, 1000);
             } else {
                 showNotification(data.message || '❌ Có lỗi xảy ra khi duyệt', 'error');
-                // Re-enable buttons
+                
                 if (approveBtn) {
                     approveBtn.disabled = false;
                     approveBtn.innerHTML = `
@@ -546,7 +541,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(err => {
             console.error('Error approving member:', err);
             showNotification('❌ Lỗi kết nối server. Vui lòng thử lại!', 'error');
-            // Re-enable buttons
+            
             if (approveBtn) {
                 approveBtn.disabled = false;
                 approveBtn.innerHTML = `
@@ -562,13 +557,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Xử lý từ chối từ modal
+    
     function handleRejectFromModal(memberId, notificationId) {
-        // Lấy các nút
-        const approveBtn = document.querySelector('.btn-approve-modal');
+        
+    const approveBtn = document.querySelector('.btn-approve-modal');
         const rejectBtn = document.querySelector('.btn-reject-modal');
         
-        // Disable buttons và hiển thị loading
+        
         if (rejectBtn) {
             rejectBtn.disabled = true;
             rejectBtn.innerHTML = `
@@ -583,7 +578,7 @@ document.addEventListener('DOMContentLoaded', function() {
             approveBtn.disabled = true;
         }
         
-        // Gọi API
+        
         const formData = new FormData();
         formData.append('member_id', memberId);
         if (CSRF_TOKEN) {
@@ -598,17 +593,17 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success) {
                 showNotification('✅ Đã từ chối yêu cầu', 'success');
-                // Đánh dấu thông báo đã đọc
+                
                 markAsRead(notificationId, null);
-                // Đóng modal
+                
                 closeJoinRequestModal();
-                // Reload notifications sau 1 giây
+                
                 setTimeout(() => {
                     loadNotifications();
                 }, 1000);
             } else {
                 showNotification(data.message || '❌ Có lỗi xảy ra khi từ chối', 'error');
-                // Re-enable buttons
+                
                 if (rejectBtn) {
                     rejectBtn.disabled = false;
                     rejectBtn.innerHTML = `
@@ -627,7 +622,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(err => {
             console.error('Error rejecting member:', err);
             showNotification('❌ Lỗi kết nối server. Vui lòng thử lại!', 'error');
-            // Re-enable buttons
+            
             if (rejectBtn) {
                 rejectBtn.disabled = false;
                 rejectBtn.innerHTML = `
@@ -644,16 +639,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Hàm approveMember cũ - giữ lại để tương thích (nếu có code khác gọi)
-    function approveMember(memberId, notificationId, phongBanId) {
-        if (!phongBanId || phongBanId <= 0) {
+    function approveMember(memberId, notificationId, departmentId) {
+        if (!departmentId || departmentId <= 0) {
             showNotification('Vui lòng chọn phòng ban', 'error');
             return;
         }
 
         const formData = new FormData();
         formData.append('member_id', memberId);
-        formData.append('phong_ban_id', phongBanId);
+        formData.append('department_id', departmentId);
 
         fetch('api/approve_member.php', {
             method: 'POST',
@@ -675,7 +669,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Hàm handleReject cũ - giữ lại để tương thích (nếu có code khác gọi)
+
     function handleReject(memberId, notificationId) {
         const formData = new FormData();
         formData.append('member_id', memberId);

@@ -22,7 +22,7 @@ if ($club_id <= 0) {
 }
 
 // Phân trang
-$items_per_page = 12; // Số thành viên mỗi trang
+$items_per_page = 12;
 $current_page = isset($_GET['page']) && is_numeric($_GET['page']) && $_GET['page'] > 0 ? (int)$_GET['page'] : 1;
 $offset = ($current_page - 1) * $items_per_page;
 
@@ -32,7 +32,7 @@ $role_filter = isset($_GET['role']) ? $_GET['role'] : '';
 $department_filter = isset($_GET['department']) ? (int)$_GET['department'] : 0;
 
 // Lấy danh sách phòng ban để hiển thị trong dropdown
-$departments_sql = "SELECT id, ten_phong_ban FROM phong_ban WHERE club_id = ? ORDER BY created_at ASC, id ASC";
+$departments_sql = "SELECT id, name FROM departments WHERE club_id = ? ORDER BY created_at ASC, id ASC";
 $dept_stmt = $conn->prepare($departments_sql);
 $dept_stmt->bind_param("i", $club_id);
 $dept_stmt->execute();
@@ -44,37 +44,37 @@ while ($row = $departments_result->fetch_assoc()) {
 $dept_stmt->close();
 
 // Xây dựng WHERE clause
-$where_conditions = ["cm.club_id = ?", "cm.trang_thai = 'dang_hoat_dong'"];
+$where_conditions = ["m.club_id = ?", "m.status = 'active'"];
 $params = [$club_id];
 $types = 'i';
 
 if (!empty($search)) {
-    $where_conditions[] = "(u.ho_ten LIKE ? OR u.email LIKE ?)";
+    $where_conditions[] = "(u.full_name LIKE ? OR u.email LIKE ?)";
     $search_param = '%' . $search . '%';
     $params[] = $search_param;
     $params[] = $search_param;
     $types .= 'ss';
 }
 
-if (!empty($role_filter) && in_array($role_filter, ['doi_truong', 'doi_pho', 'truong_ban', 'thanh_vien', 'chu_nhiem', 'pho_chu_nhiem'])) {
-    $where_conditions[] = "cm.vai_tro = ?";
+if (!empty($role_filter) && in_array($role_filter, ['leader', 'vice_leader', 'head', 'member'])) {
+    $where_conditions[] = "m.role = ?";
     $params[] = $role_filter;
     $types .= 's';
 }
 
 if (!empty($department_filter) && $department_filter > 0) {
-    $where_conditions[] = "cm.phong_ban_id = ?";
+    $where_conditions[] = "m.department_id = ?";
     $params[] = $department_filter;
     $types .= 'i';
 }
 
 $where_clause = implode(' AND ', $where_conditions);
 
-// Đếm tổng số thành viên (cho phân trang)
+// Đếm tổng số thành viên
 $count_sql = "
     SELECT COUNT(*) as total
-    FROM club_members cm
-    INNER JOIN users u ON cm.user_id = u.id
+    FROM members m
+    INNER JOIN users u ON m.user_id = u.id
     WHERE $where_clause
 ";
 $count_stmt = $conn->prepare($count_sql);
@@ -87,29 +87,27 @@ $count_stmt->close();
 // Lấy danh sách thành viên với phân trang
 $sql = "
     SELECT 
-        cm.id AS club_member_id,
+        m.id AS member_id,
         u.id AS user_id,
-        u.ho_ten,
+        u.full_name,
         u.avatar,
         u.email,
-        cm.vai_tro AS vai_tro_clb,
-        cm.trang_thai,
-        COALESCE(pb.ten_phong_ban, '') AS ten_phong_ban,
-        cm.phong_ban_id
-    FROM club_members cm
-    INNER JOIN users u ON cm.user_id = u.id
-    LEFT JOIN phong_ban pb ON cm.phong_ban_id = pb.id AND pb.club_id = cm.club_id
+        m.role AS member_role,
+        m.status,
+        COALESCE(d.name, '') AS department_name,
+        m.department_id
+    FROM members m
+    INNER JOIN users u ON m.user_id = u.id
+    LEFT JOIN departments d ON m.department_id = d.id AND d.club_id = m.club_id
     WHERE $where_clause
     ORDER BY 
-        CASE cm.vai_tro
-            WHEN 'doi_truong' THEN 1
-            WHEN 'chu_nhiem' THEN 1
-            WHEN 'doi_pho' THEN 2
-            WHEN 'pho_chu_nhiem' THEN 2
-            WHEN 'truong_ban' THEN 3
+        CASE m.role
+            WHEN 'leader' THEN 1
+            WHEN 'vice_leader' THEN 2
+            WHEN 'head' THEN 3
             ELSE 4
         END,
-        u.ho_ten
+        u.full_name
     LIMIT ? OFFSET ?
 ";
 
@@ -149,16 +147,16 @@ $result = $stmt->get_result();
             </div>
             <select name="role" class="role-filter">
                 <option value="">Tất cả vai trò</option>
-                <option value="doi_truong" <?= in_array($role_filter, ['doi_truong', 'chu_nhiem']) ? 'selected' : '' ?>>Đội trưởng</option>
-                <option value="doi_pho" <?= in_array($role_filter, ['doi_pho', 'pho_chu_nhiem']) ? 'selected' : '' ?>>Đội phó</option>
-                <option value="truong_ban" <?= $role_filter === 'truong_ban' ? 'selected' : '' ?>>Trưởng ban</option>
-                <option value="thanh_vien" <?= $role_filter === 'thanh_vien' ? 'selected' : '' ?>>Thành viên</option>
+                <option value="leader" <?= $role_filter === 'leader' ? 'selected' : '' ?>>Đội trưởng</option>
+                <option value="vice_leader" <?= $role_filter === 'vice_leader' ? 'selected' : '' ?>>Đội phó</option>
+                <option value="head" <?= $role_filter === 'head' ? 'selected' : '' ?>>Trưởng ban</option>
+                <option value="member" <?= $role_filter === 'member' ? 'selected' : '' ?>>Thành viên</option>
             </select>
             <select name="department" class="department-filter">
                 <option value="">Tất cả phòng ban</option>
                 <?php foreach ($departments_list as $dept): ?>
                     <option value="<?= $dept['id'] ?>" <?= $department_filter == $dept['id'] ? 'selected' : '' ?>>
-                        <?= htmlspecialchars($dept['ten_phong_ban']) ?>
+                        <?= htmlspecialchars($dept['name']) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
@@ -184,7 +182,7 @@ $result = $stmt->get_result();
 <div class="members-table-container">
     <table class="members-table">
         <thead>
-            <tr>
+            叉
                 <th>Thành viên</th>
                 <th>Email</th>
                 <th>Vai trò</th>
@@ -196,26 +194,27 @@ $result = $stmt->get_result();
         <tbody>
             <?php if ($result && $result->num_rows > 0): ?>
                 <?php while ($member = $result->fetch_assoc()): 
-                    $club_member_id = $member['club_member_id'];
-                    $ho_ten         = htmlspecialchars($member['ho_ten']);
-                    $avatar         = $member['avatar']; 
-                    $email          = htmlspecialchars($member['email'] ?? 'Chưa cung cấp');
+                    $member_id = $member['member_id'];
+                    $full_name = htmlspecialchars($member['full_name']);
+                    $avatar = $member['avatar']; 
+                    $email = htmlspecialchars($member['email'] ?? 'Chưa cung cấp');
 
                     // Vai trò
-                    $vai_tro = isset($member['vai_tro_clb']) ? $member['vai_tro_clb'] : '';
-                    $vai_tro_hien_thi = match($vai_tro) {
-                        'doi_truong', 'chu_nhiem'     => 'Đội trưởng',
-                        'doi_pho', 'pho_chu_nhiem'    => 'Đội phó',
-                        'truong_ban'                   => 'Trưởng ban',
-                        default                        => 'Thành viên'
-                    };
+                    $role = isset($member['member_role']) ? $member['member_role'] : '';
+                    $role_labels = [
+                        'leader' => 'Đội trưởng',
+                        'vice_leader' => 'Đội phó',
+                        'head' => 'Trưởng ban',
+                        'member' => 'Thành viên'
+                    ];
+                    $role_display = $role_labels[$role] ?? 'Thành viên';
                     
                     // Class cho badge vai trò
-                    $role_class = match($vai_tro) {
-                        'doi_truong', 'chu_nhiem'     => 'role-owner',
-                        'doi_pho', 'pho_chu_nhiem'    => 'role-vice',
-                        'truong_ban'                  => 'role-leader',
-                        default                        => 'role-member'
+                    $role_class = match($role) {
+                        'leader' => 'role-owner',
+                        'vice_leader' => 'role-vice',
+                        'head' => 'role-leader',
+                        default => 'role-member'
                     };
 
                     // Xử lý avatar
@@ -225,41 +224,41 @@ $result = $stmt->get_result();
                         $anh_avatar = "assets/img/avatars/user.svg";
                     }
                     
-                    // Phòng ban - kiểm tra kỹ dữ liệu
-                    $phong_ban = 'Chưa phân công';
-                    $phong_ban_id = isset($member['phong_ban_id']) ? (int)$member['phong_ban_id'] : 0;
-                    if (isset($member['ten_phong_ban']) && !empty($member['ten_phong_ban']) && trim($member['ten_phong_ban']) !== '') {
-                        $phong_ban = htmlspecialchars(trim($member['ten_phong_ban']));
+                    // Phòng ban
+                    $department_name = 'Chưa phân công';
+                    $department_id = isset($member['department_id']) ? (int)$member['department_id'] : 0;
+                    if (isset($member['department_name']) && !empty($member['department_name']) && trim($member['department_name']) !== '') {
+                        $department_name = htmlspecialchars(trim($member['department_name']));
                     }
                 ?>
                 <tr>
                     <td>
                         <div class="member-cell">
-                            <img src="<?= $anh_avatar ?>" alt="<?= $ho_ten ?>" class="member-avatar-small">
-                            <span class="member-name"><?= $ho_ten ?></span>
+                            <img src="<?= $anh_avatar ?>" alt="<?= $full_name ?>" class="member-avatar-small">
+                            <span class="member-name"><?= $full_name ?></span>
                         </div>
                     </td>
                     <td><?= $email ?></td>
                     <td>
                         <span class="role-badge-table <?= $role_class ?>">
-                            <?= $vai_tro_hien_thi ?>
+                            <?= $role_display ?>
                         </span>
                     </td>
                     <td>
-                        <span class="phong-ban-text"><?= $phong_ban ?></span>
+                        <span class="phong-ban-text"><?= $department_name ?></span>
                     </td>
                     <td>
                         <span class="status approved">Đang hoạt động</span>
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <button class="btn-icon btn-edit" onclick="openEditModal(<?= $club_member_id ?>, '<?= htmlspecialchars($ho_ten, ENT_QUOTES) ?>', '<?= $vai_tro ?>', <?= $phong_ban_id ?>, <?= $club_id ?>)" title="Chỉnh sửa">
+                            <button class="btn-icon btn-edit" onclick="openEditModal(<?= $member_id ?>, '<?= htmlspecialchars($full_name, ENT_QUOTES) ?>', '<?= $role ?>', <?= $department_id ?>, <?= $club_id ?>)" title="Chỉnh sửa">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                 </svg>
                             </button>
-                            <button class="btn-icon btn-delete" onclick="deleteMember(<?= $club_member_id ?>)" title="Xóa thành viên">
+                            <button class="btn-icon btn-delete" onclick="deleteMember(<?= $member_id ?>)" title="Xóa thành viên">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="3 6 5 6 21 6"></polyline>
                                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -356,7 +355,7 @@ $result = $stmt->get_result();
             <button class="edit-modal-close" onclick="closeEditModal()">&times;</button>
         </div>
         <form id="editMemberForm">
-            <input type="hidden" id="edit_club_member_id" name="club_member_id">
+            <input type="hidden" id="edit_member_id" name="member_id">
             <input type="hidden" id="edit_club_id" name="club_id">
             
             <div class="edit-form-group">
@@ -365,19 +364,19 @@ $result = $stmt->get_result();
             </div>
 
             <div class="edit-form-group">
-                <label for="edit_phong_ban_id">Phòng ban</label>
-                <select id="edit_phong_ban_id" name="phong_ban_id">
+                <label for="edit_department_id">Phòng ban</label>
+                <select id="edit_department_id" name="department_id">
                     <option value="">-- Chọn phòng ban --</option>
                 </select>
             </div>
 
             <div class="edit-form-group">
-                <label for="edit_vai_tro">Vai trò <span class="required">*</span></label>
-                <select id="edit_vai_tro" name="vai_tro" required>
-                    <option value="thanh_vien">Thành viên</option>
-                    <option value="truong_ban">Trưởng ban</option>
-                    <option value="doi_pho">Đội phó</option>
-                    <option value="doi_truong">Đội trưởng</option>
+                <label for="edit_role">Vai trò <span class="required">*</span></label>
+                <select id="edit_role" name="role" required>
+                    <option value="member">Thành viên</option>
+                    <option value="head">Trưởng ban</option>
+                    <option value="vice_leader">Đội phó</option>
+                    <option value="leader">Đội trưởng</option>
                 </select>
             </div>
 
@@ -390,7 +389,7 @@ $result = $stmt->get_result();
 </div>
 
 <script>
-function deleteMember(club_member_id) {
+function deleteMember(member_id) {
     if (!confirm('Bạn có chắc chắn muốn xóa thành viên này?')) return;
 
     fetch('api/delete_member.php', {
@@ -398,7 +397,7 @@ function deleteMember(club_member_id) {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: 'club_member_id=' + club_member_id
+        body: 'member_id=' + member_id
     })
     .then(res => res.json())
     .then(data => {
@@ -411,25 +410,25 @@ function deleteMember(club_member_id) {
     });
 }
 
-function openEditModal(club_member_id, member_name, current_role, current_phong_ban_id, club_id) {
+function openEditModal(member_id, member_name, current_role, current_department_id, club_id) {
     // Set form values
-    document.getElementById('edit_club_member_id').value = club_member_id;
+    document.getElementById('edit_member_id').value = member_id;
     document.getElementById('edit_club_id').value = club_id;
     document.getElementById('edit_member_name').textContent = member_name;
-    document.getElementById('edit_vai_tro').value = current_role;
+    document.getElementById('edit_role').value = current_role;
     
     // Load departments
     fetch(`api/get_departments.php?club_id=${club_id}`)
         .then(res => res.json())
         .then(data => {
             if (data.success && data.departments) {
-                const select = document.getElementById('edit_phong_ban_id');
+                const select = document.getElementById('edit_department_id');
                 select.innerHTML = '<option value="">-- Chọn phòng ban --</option>';
                 data.departments.forEach(dept => {
                     const option = document.createElement('option');
                     option.value = dept.id;
-                    option.textContent = dept.ten_phong_ban;
-                    if (current_phong_ban_id && dept.id == current_phong_ban_id) {
+                    option.textContent = dept.name;
+                    if (current_department_id && dept.id == current_department_id) {
                         option.selected = true;
                     }
                     select.appendChild(option);
@@ -454,10 +453,10 @@ document.getElementById('editMemberForm').addEventListener('submit', function(e)
     
     const formData = new FormData(this);
     const data = {
-        club_member_id: formData.get('club_member_id'),
+        member_id: formData.get('member_id'),
         club_id: formData.get('club_id'),
-        vai_tro: formData.get('vai_tro'),
-        phong_ban_id: formData.get('phong_ban_id') || ''
+        role: formData.get('role'),
+        department_id: formData.get('department_id') || ''
     };
     
     // Disable submit button

@@ -14,7 +14,7 @@ $page_css = "login.css";
 // Kiểm tra tự động đăng nhập từ cookie
 if (!isset($_SESSION['logged_in']) && autoLoginFromCookie()) {
     // Kiểm tra nếu là admin thì chuyển đến admin dashboard
-    if (isset($_SESSION['vai_tro']) && $_SESSION['vai_tro'] === 'ADMIN') {
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
         header("Location: admin/dashboard.php");
     } else {
         header("Location: trangchu.php");
@@ -25,7 +25,7 @@ if (!isset($_SESSION['logged_in']) && autoLoginFromCookie()) {
 // Nếu đã đăng nhập, chuyển đến trang tương ứng
 if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
     // Kiểm tra nếu là admin thì chuyển đến admin dashboard
-    if (isset($_SESSION['vai_tro']) && $_SESSION['vai_tro'] === 'ADMIN') {
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
         header("Location: admin/dashboard.php");
     } else {
         header("Location: trangchu.php");
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login'])) {
         if ($login_result === true) {
             // Đăng nhập user thành công
             // Kiểm tra nếu là admin thì chuyển đến admin dashboard
-            if (isset($_SESSION['vai_tro']) && $_SESSION['vai_tro'] === 'ADMIN') {
+            if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                 header("Location: admin/dashboard.php");
             } else {
                 header("Location: trangchu.php");

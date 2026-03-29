@@ -29,17 +29,17 @@ if (!can_manage_club($conn, $user_id, $club_id)) {
     redirect('myclub.php', 'Bạn không có quyền chỉnh sửa thông tin câu lạc bộ này!', 'error');
 }
 
-// Lấy thông tin CLB (logo lấy từ club_pages + media_library + contact từ club_contacts)
+// Lấy thông tin CLB (logo lấy từ pages + media + contact từ contacts)
 $sql = "SELECT 
-            c.id, c.ten_clb, c.mo_ta, c.linh_vuc, c.so_thanh_vien, c.ngay_thanh_lap,
-            logo.file_path AS logo_path,
+            c.id, c.name, c.description, c.category, c.total_members, c.founded_date,
+            logo.path AS logo_path,
             cc.email AS contact_email,
             cc.phone AS contact_phone,
             cc.website AS contact_website
         FROM clubs c
-        LEFT JOIN club_pages cp ON cp.club_id = c.id
-        LEFT JOIN media_library logo ON cp.logo_id = logo.id
-        LEFT JOIN club_contacts cc ON cc.club_id = c.id
+        LEFT JOIN pages p ON p.club_id = c.id
+        LEFT JOIN media logo ON p.logo_id = logo.id
+        LEFT JOIN contacts cc ON cc.club_id = c.id
         WHERE c.id=?";
 
 $stmt = $conn->prepare($sql);
@@ -53,8 +53,8 @@ if ($result->num_rows == 0) {
 
 $club = $result->fetch_assoc();
 
-// Tự động đếm số lượng thành viên thực tế từ club_members
-$count_members_sql = "SELECT COUNT(*) as total FROM club_members WHERE club_id = ? AND trang_thai = 'dang_hoat_dong'";
+// Tự động đếm số lượng thành viên thực tế từ members
+$count_members_sql = "SELECT COUNT(*) as total FROM members WHERE club_id = ? AND status = 'active'";
 $count_stmt = $conn->prepare($count_members_sql);
 $count_stmt->bind_param("i", $club_id);
 $count_stmt->execute();
@@ -67,21 +67,21 @@ if ($count_result->num_rows > 0) {
 $count_stmt->close();
 
 // Cập nhật số lượng thành viên trong database nếu khác với thực tế
-if ($actual_member_count != ($club['so_thanh_vien'] ?? 0)) {
-    $update_count_sql = "UPDATE clubs SET so_thanh_vien = ? WHERE id = ?";
+if ($actual_member_count != ($club['total_members'] ?? 0)) {
+    $update_count_sql = "UPDATE clubs SET total_members = ? WHERE id = ?";
     $update_stmt = $conn->prepare($update_count_sql);
     $update_stmt->bind_param("ii", $actual_member_count, $club_id);
     $update_stmt->execute();
     $update_stmt->close();
-    $club['so_thanh_vien'] = $actual_member_count;
+    $club['total_members'] = $actual_member_count;
 }
 
 // Set default values
 $club['contact_email'] = $club['contact_email'] ?? '';
 $club['contact_phone'] = $club['contact_phone'] ?? '';
 $club['contact_website'] = $club['contact_website'] ?? '';
-$club['so_thanh_vien'] = $club['so_thanh_vien'] ?? 0;
-$club['ngay_thanh_lap'] = $club['ngay_thanh_lap'] ?? '';
+$club['total_members'] = $club['total_members'] ?? 0;
+$club['founded_date'] = $club['founded_date'] ?? '';
 $logo_display = $club['logo_path'] ?? '';
 ?>
 
@@ -165,42 +165,34 @@ $logo_display = $club['logo_path'] ?? '';
 
                 <div class="form-group">
                     <label>Tên câu lạc bộ</label>
-                    <input type="text" name="ten_clb" value="<?= htmlspecialchars($club['ten_clb']) ?>" required>
+                    <input type="text" name="name" value="<?= htmlspecialchars($club['name']) ?>" required>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label>Lĩnh vực hoạt động</label>
-                        <select name="linh_vuc" required>
+                        <select name="category" required>
                             <option value="">Chọn lĩnh vực</option>
-                            <option value="Học thuật" <?= ($club['linh_vuc']=="Học thuật") ? "selected":""; ?>>📚 Học thuật</option>
-                            <option value="Thể thao" <?= ($club['linh_vuc']=="Thể thao") ? "selected":""; ?>>⚽ Thể thao</option>
-                            <option value="Nghệ thuật" <?= ($club['linh_vuc']=="Nghệ thuật") ? "selected":""; ?>>🎨 Nghệ thuật</option>
-                            <option value="Tình nguyện" <?= ($club['linh_vuc']=="Tình nguyện") ? "selected":""; ?>>❤️ Tình nguyện</option>
-                            <option value="Văn nghệ" <?= ($club['linh_vuc']=="Văn nghệ") ? "selected":""; ?>>🎭 Văn nghệ</option>
-                            <option value="Kỹ năng" <?= ($club['linh_vuc']=="Kỹ năng") ? "selected":""; ?>>💡 Kỹ năng</option>
-                            <option value="Truyền thông" <?= ($club['linh_vuc']=="Truyền thông") ? "selected":""; ?>>📢 Truyền thông</option>
-                            <option value="Ngôn ngữ" <?= ($club['linh_vuc']=="Ngôn ngữ") ? "selected":""; ?>>🌐 Ngôn ngữ</option>
-                            <option value="Sở thích" <?= ($club['linh_vuc']=="Sở thích") ? "selected":""; ?>>🎯 Sở thích</option>
-                            <option value="Điện tử" <?= ($club['linh_vuc']=="Điện tử") ? "selected":""; ?>>🔌 Điện tử</option>
-                            <option value="Âm nhạc" <?= ($club['linh_vuc']=="Âm nhạc") ? "selected":""; ?>>🎵 Âm nhạc</option>
-                            <option value="Khởi nghiệp" <?= ($club['linh_vuc']=="Khởi nghiệp") ? "selected":""; ?>>🚀 Khởi nghiệp</option>
-                            <option value="Văn học" <?= ($club['linh_vuc']=="Văn học") ? "selected":""; ?>>📖 Văn học</option>
-                            <option value="Công nghệ" <?= ($club['linh_vuc']=="Công nghệ") ? "selected":""; ?>>💻 Công nghệ</option>
-                            <option value="Môi trường" <?= ($club['linh_vuc']=="Môi trường") ? "selected":""; ?>>🌱 Môi trường</option>
+                            <option value="Academic" <?= ($club['category']=="Academic") ? "selected":""; ?>>📚 Học thuật</option>
+                            <option value="Sport" <?= ($club['category']=="Sport") ? "selected":""; ?>>⚽ Thể thao</option>
+                            <option value="Art" <?= ($club['category']=="Art") ? "selected":""; ?>>🎨 Nghệ thuật</option>
+                            <option value="Volunteer" <?= ($club['category']=="Volunteer") ? "selected":""; ?>>❤️ Tình nguyện</option>
+                            <option value="Skill" <?= ($club['category']=="Skill") ? "selected":""; ?>>💡 Kỹ năng</option>
+                            <option value="Language" <?= ($club['category']=="Language") ? "selected":""; ?>>🌐 Ngôn ngữ</option>
+                            <option value="Other" <?= ($club['category']=="Other") ? "selected":""; ?>>🔖 Khác</option>
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label>Số lượng thành viên <span style="color: #94a3b8; font-weight: normal; font-size: 13px;">(Tự động cập nhật)</span></label>
-                        <input type="number" name="so_thanh_vien" value="<?= $club['so_thanh_vien'] ?>" min="0" readonly style="background-color: #f1f5f9; cursor: not-allowed;">
+                        <input type="number" name="total_members" value="<?= $club['total_members'] ?>" min="0" readonly style="background-color: #f1f5f9; cursor: not-allowed;">
                         <small style="color: #64748b; font-size: 12px; display: block; margin-top: 4px;">Số lượng thành viên được tự động tính từ danh sách thành viên đang hoạt động</small>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Ngày thành lập</label>
-                    <input type="date" name="ngay_thanh_lap" value="<?= htmlspecialchars($club['ngay_thanh_lap'] ?? '') ?>">
+                    <input type="date" name="founded_date" value="<?= htmlspecialchars($club['founded_date'] ?? '') ?>">
                 </div>
             </div>
 
@@ -219,7 +211,7 @@ $logo_display = $club['logo_path'] ?? '';
 
                 <div class="form-group">
                     <label>Mô tả</label>
-                    <textarea name="mo_ta" rows="5" placeholder="Giới thiệu về mục đích, hoạt động của câu lạc bộ..."><?= htmlspecialchars($club['mo_ta'] ?? '') ?></textarea>
+                    <textarea name="description" rows="5" placeholder="Giới thiệu về mục đích, hoạt động của câu lạc bộ..."><?= htmlspecialchars($club['description'] ?? '') ?></textarea>
                 </div>
             </div>
 

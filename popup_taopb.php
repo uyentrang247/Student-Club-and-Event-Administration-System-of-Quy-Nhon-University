@@ -23,33 +23,33 @@ $club_id = isset($_GET['club_id']) ? (int)$_GET['club_id'] : 0;
             <input type="hidden" name="club_id" value="<?= $club_id ?>">
             
             <div class="form-group">
-                <label for="ten_phong_ban">
+                <label for="name">
                     Tên phòng ban <span class="required" aria-label="bắt buộc">*</span>
                 </label>
                 <input type="text" 
-                       id="ten_phong_ban" 
-                       name="ten_phong_ban" 
+                       id="name" 
+                       name="name" 
                        placeholder="VD: Phòng Truyền thông, Phòng Sự kiện..." 
                        maxlength="100"
                        required
                        aria-required="true"
-                       aria-describedby="ten_phong_ban_error">
-                <span id="ten_phong_ban_error" class="error-message" role="alert"></span>
+                       aria-describedby="name_error">
+                <span id="name_error" class="error-message" role="alert"></span>
             </div>
             
             <div class="form-group">
-                <label for="chuc_nang_nhiem_vu">
+                <label for="description">
                     Chức năng nhiệm vụ <span class="required" aria-label="bắt buộc">*</span>
                 </label>
-                <textarea id="chuc_nang_nhiem_vu" 
-                          name="chuc_nang_nhiem_vu" 
+                <textarea id="description" 
+                          name="description" 
                           rows="4" 
                           placeholder="Mô tả chi tiết về chức năng, nhiệm vụ và trách nhiệm của phòng ban..."
                           maxlength="500"
                           required
                           aria-required="true"
-                          aria-describedby="chuc_nang_error"></textarea>
-                <span id="chuc_nang_error" class="error-message" role="alert"></span>
+                          aria-describedby="description_error"></textarea>
+                <span id="description_error" class="error-message" role="alert"></span>
             </div>
             
             <div class="modal-footer">

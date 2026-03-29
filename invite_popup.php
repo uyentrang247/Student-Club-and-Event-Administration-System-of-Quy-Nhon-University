@@ -14,7 +14,7 @@ $club_id = $_SESSION['club_id'] ?? null;
 
 if (!$club_id) {
     // Nếu không có trong session, lấy CLB đầu tiên của user
-    $stmt = $conn->prepare("SELECT id FROM clubs WHERE chu_nhiem_id = ? ORDER BY id ASC LIMIT 1");
+    $stmt = $conn->prepare("SELECT id FROM clubs WHERE leader_id = ? ORDER BY id ASC LIMIT 1");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $club = $stmt->get_result()->fetch_assoc();
@@ -30,12 +30,12 @@ if (!$club_id) {
 // Lấy tên CLB
 $club_name = '';
 if ($club_id > 0) {
-    $stmt = $conn->prepare("SELECT ten_clb FROM clubs WHERE id = ?");
+    $stmt = $conn->prepare("SELECT name FROM clubs WHERE id = ?");
     $stmt->bind_param("i", $club_id);
     $stmt->execute();
     $result = $stmt->get_result();
     if ($row = $result->fetch_assoc()) {
-        $club_name = $row['ten_clb'];
+        $club_name = $row['name'];
     }
     $stmt->close();
 }
@@ -79,22 +79,22 @@ if ($club_id > 0) {
             </div>
 
             <div class="form-group" style="margin-top: 20px;">
-                <label for="invite_phong_ban_id">
+                <label for="invite_department_id">
                     Phòng ban <span style="color: #999; font-weight: normal;">(Tùy chọn)</span>
                 </label>
-                <select id="invite_phong_ban_id" name="phong_ban_id" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
+                <select id="invite_department_id" name="department_id" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
                     <option value="">-- Chưa chọn phòng ban --</option>
                     <?php
-                    // Lấy danh sách phòng ban của CLB
-                    $stmt_pb = $conn->prepare("SELECT id, ten_phong_ban FROM phong_ban WHERE club_id = ? ORDER BY ten_phong_ban ASC");
+                    // Lấy danh sách phòng ban của CLB từ bảng departments
+                    $stmt_pb = $conn->prepare("SELECT id, name FROM departments WHERE club_id = ? ORDER BY name ASC");
                     $stmt_pb->bind_param("i", $club_id);
                     $stmt_pb->execute();
-                    $phong_bans = $stmt_pb->get_result()->fetch_all(MYSQLI_ASSOC);
+                    $departments = $stmt_pb->get_result()->fetch_all(MYSQLI_ASSOC);
                     $stmt_pb->close();
                     
-                    foreach ($phong_bans as $pb):
+                    foreach ($departments as $dept):
                     ?>
-                        <option value="<?= $pb['id'] ?>"><?= htmlspecialchars($pb['ten_phong_ban']) ?></option>
+                        <option value="<?= $dept['id'] ?>"><?= htmlspecialchars($dept['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
                 <span style="display: block; margin-top: 6px; font-size: 13px; color: #666;">Chọn phòng ban cho thành viên được mời</span>

@@ -19,9 +19,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error_message = "Email không hợp lệ!";
     } else {
-        // Lưu vào database
+        // Lưu vào database (bảng inquiries)
         try {
-            $stmt = $conn->prepare("INSERT INTO lienhe (name, email, subject, message) VALUES (?, ?, ?, ?)");
+            $stmt = $conn->prepare("INSERT INTO inquiries (name, email, subject, message) VALUES (?, ?, ?, ?)");
             $stmt->bind_param("ssss", $name, $email, $subject, $message);
             
             if ($stmt->execute()) {

@@ -7,11 +7,11 @@ $club_id = isset($_GET['club_id']) ? (int)$_GET['club_id'] : 0;
 
 // Lấy thông tin thành viên
 $stmt = $conn->prepare("
-    SELECT cm.id, cm.vai_tro, cm.phong_ban_id, u.ho_ten, u.username, pb.ten_phong_ban
-    FROM club_members cm
-    JOIN users u ON cm.user_id = u.id
-    LEFT JOIN phong_ban pb ON cm.phong_ban_id = pb.id
-    WHERE cm.user_id = ? AND cm.club_id = ?
+    SELECT m.id, m.role, m.department_id, u.full_name, u.username, d.name AS department_name
+    FROM members m
+    JOIN users u ON m.user_id = u.id
+    LEFT JOIN departments d ON m.department_id = d.id
+    WHERE m.user_id = ? AND m.club_id = ?
 ");
 $stmt->bind_param("ii", $user_id, $club_id);
 $stmt->execute();
@@ -19,11 +19,11 @@ $member = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 // Lấy danh sách phòng ban
-$stmt_pb = $conn->prepare("SELECT id, ten_phong_ban FROM phong_ban WHERE club_id = ? ORDER BY ten_phong_ban ASC");
-$stmt_pb->bind_param("i", $club_id);
-$stmt_pb->execute();
-$phong_bans = $stmt_pb->get_result()->fetch_all(MYSQLI_ASSOC);
-$stmt_pb->close();
+$stmt_dept = $conn->prepare("SELECT id, name FROM departments WHERE club_id = ? ORDER BY name ASC");
+$stmt_dept->bind_param("i", $club_id);
+$stmt_dept->execute();
+$departments = $stmt_dept->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt_dept->close();
 
 if (!$member) {
     echo "<script>alert('Không tìm thấy thành viên!'); window.close();</script>";
@@ -46,30 +46,30 @@ if (!$member) {
             <div class="edit-form-group">
                 <label>Thành viên</label>
                 <div class="edit-member-display">
-                    <strong><?= htmlspecialchars($member['ho_ten']) ?></strong>
+                    <strong><?= htmlspecialchars($member['full_name']) ?></strong>
                     <span class="text-muted">(<?= htmlspecialchars($member['username']) ?>)</span>
                 </div>
             </div>
 
             <div class="edit-form-group">
-                <label for="phong_ban_id">Phòng ban <span class="required">*</span></label>
-                <select id="phong_ban_id" name="phong_ban_id" required>
+                <label for="department_id">Phòng ban <span class="required">*</span></label>
+                <select id="department_id" name="department_id" required>
                     <option value="">-- Chọn phòng ban --</option>
-                    <?php foreach ($phong_bans as $pb): ?>
-                        <option value="<?= $pb['id'] ?>" <?= $member['phong_ban_id'] == $pb['id'] ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($pb['ten_phong_ban']) ?>
+                    <?php foreach ($departments as $dept): ?>
+                        <option value="<?= $dept['id'] ?>" <?= $member['department_id'] == $dept['id'] ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($dept['name']) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
             </div>
 
             <div class="edit-form-group">
-                <label for="vai_tro">Chức vụ <span class="required">*</span></label>
-                <select id="vai_tro" name="vai_tro" required>
-                    <option value="thanh_vien" <?= in_array($member['vai_tro'], ['thanh_vien']) ? 'selected' : '' ?>>Thành viên</option>
-                    <option value="truong_ban" <?= in_array($member['vai_tro'], ['truong_ban']) ? 'selected' : '' ?>>Trưởng ban</option>
-                    <option value="doi_pho" <?= in_array($member['vai_tro'], ['doi_pho', 'pho_chu_nhiem']) ? 'selected' : '' ?>>Đội phó</option>
-                    <option value="doi_truong" <?= in_array($member['vai_tro'], ['doi_truong', 'chu_nhiem']) ? 'selected' : '' ?>>Đội trưởng</option>
+                <label for="role">Chức vụ <span class="required">*</span></label>
+                <select id="role" name="role" required>
+                    <option value="member" <?= in_array($member['role'], ['member']) ? 'selected' : '' ?>>Thành viên</option>
+                    <option value="head" <?= in_array($member['role'], ['head']) ? 'selected' : '' ?>>Trưởng ban</option>
+                    <option value="vice_leader" <?= in_array($member['role'], ['vice_leader']) ? 'selected' : '' ?>>Đội phó</option>
+                    <option value="leader" <?= in_array($member['role'], ['leader']) ? 'selected' : '' ?>>Đội trưởng</option>
                 </select>
             </div>
 

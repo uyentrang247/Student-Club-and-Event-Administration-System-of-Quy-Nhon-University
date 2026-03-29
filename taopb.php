@@ -30,7 +30,7 @@ if (isset($_GET['id']) && is_numeric($_GET['id']) && $_GET['id'] > 0) {
 
 // Nếu club_id không có → báo chưa có CLB hoặc redirect tới tạo CLB
 if (!$club_id) {
-    $stmt = $conn->prepare("SELECT id FROM clubs WHERE chu_nhiem_id = ? ORDER BY id ASC LIMIT 1");
+    $stmt = $conn->prepare("SELECT id FROM clubs WHERE leader_id = ? ORDER BY id ASC LIMIT 1");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $club = $stmt->get_result()->fetch_assoc();
@@ -49,32 +49,30 @@ if (!can_manage_club($conn, $user_id, $club_id)) {
     redirect('myclub.php', 'Bạn không có quyền quản lý phòng ban của câu lạc bộ này!', 'error');
 }
 
-// lấy ID đội trưởng của CLB
-$stmt_cn = $conn->prepare("SELECT chu_nhiem_id FROM clubs WHERE id = ?");
+// lấy ID leader của CLB
+$stmt_cn = $conn->prepare("SELECT leader_id FROM clubs WHERE id = ?");
 $stmt_cn->bind_param("i", $club_id);
 $stmt_cn->execute();
-$chu_nhiem_id = $stmt_cn->get_result()->fetch_assoc()['chu_nhiem_id'] ?? 0;
+$leader_id = $stmt_cn->get_result()->fetch_assoc()['leader_id'] ?? 0;
 $stmt_cn->close();
 
 // Lấy danh sách thành viên của CLB (chỉ lấy thành viên đang hoạt động)
 $members = [];
 $sql_members = "
-    SELECT u.id AS user_id, u.ho_ten, u.username, u.email, u.so_dien_thoai, u.avatar,
-           pb.ten_phong_ban, cm.vai_tro
-    FROM club_members cm
-    JOIN users u ON cm.user_id = u.id
-    LEFT JOIN phong_ban pb ON cm.phong_ban_id = pb.id
-    WHERE cm.club_id = ? AND cm.trang_thai = 'dang_hoat_dong'
-            ORDER BY 
-            CASE cm.vai_tro
-            WHEN 'doi_truong' THEN 1
-            WHEN 'chu_nhiem' THEN 1
-            WHEN 'doi_pho' THEN 2
-            WHEN 'pho_chu_nhiem' THEN 2
-            WHEN 'truong_ban' THEN 3
+    SELECT u.id AS user_id, u.full_name, u.username, u.email, u.phone, u.avatar,
+           d.name AS department_name, m.role
+    FROM members m
+    JOIN users u ON m.user_id = u.id
+    LEFT JOIN departments d ON m.department_id = d.id
+    WHERE m.club_id = ? AND m.status = 'active'
+    ORDER BY 
+        CASE m.role
+            WHEN 'leader' THEN 1
+            WHEN 'vice_leader' THEN 2
+            WHEN 'head' THEN 3
             ELSE 4
-            END,
-        u.ho_ten
+        END,
+        u.full_name
 ";
 $stmt2 = $conn->prepare($sql_members);
 $stmt2->bind_param("i", $club_id);
@@ -84,7 +82,7 @@ $stmt2->close();
 
 // Lấy danh sách phòng ban
 $departments = [];
-$stmt3 = $conn->prepare("SELECT id, ten_phong_ban FROM phong_ban WHERE club_id = ? ORDER BY created_at ASC, id ASC");
+$stmt3 = $conn->prepare("SELECT id, name FROM departments WHERE club_id = ? ORDER BY created_at ASC, id ASC");
 $stmt3->bind_param("i", $club_id);
 $stmt3->execute();
 $departments = $stmt3->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -125,7 +123,7 @@ load_header();
           <div class="empty-dept">Chưa có phòng ban nào — hãy tạo mới!</div>
       <?php else: ?>
           <?php foreach ($departments as $d): 
-                $cnt_stmt = $conn->prepare("SELECT COUNT(*) AS c FROM club_members WHERE phong_ban_id = ? AND club_id = ? AND trang_thai = 'dang_hoat_dong'");
+                $cnt_stmt = $conn->prepare("SELECT COUNT(*) AS c FROM members WHERE department_id = ? AND club_id = ? AND status = 'active'");
                 $cnt_stmt->bind_param("ii", $d['id'], $club_id);
                 $cnt_stmt->execute();
                 $cnt = $cnt_stmt->get_result()->fetch_assoc()['c'] ?? 0;
@@ -136,7 +134,7 @@ load_header();
                     <img src="assets/img/logoQuyNhon-icon.jpg" alt="icon">
                 </div>
                 <div class="dept-info-inline">
-                    <div class="dept-name"><?= htmlspecialchars($d['ten_phong_ban']) ?></div>
+                    <div class="dept-name"><?= htmlspecialchars($d['name']) ?></div>
                     <div class="dept-count"><?= $cnt ?> thành viên</div>
                 </div>
             </div>
@@ -172,35 +170,33 @@ load_header();
             <tr>
               <td>
                 <div class="member-cell">
-                  <img src="<?= $anh_avatar ?>" alt="<?= htmlspecialchars($m['ho_ten']) ?>" class="member-avatar-small">
+                  <img src="<?= $anh_avatar ?>" alt="<?= htmlspecialchars($m['full_name']) ?>" class="member-avatar-small">
                   <div>
-                    <div class="member-name"><?= htmlspecialchars($m['ho_ten']) ?></div>
+                    <div class="member-name"><?= htmlspecialchars($m['full_name']) ?></div>
                     <div class="subid"><?= htmlspecialchars($m['username']) ?></div>
                   </div>
                 </div>
               </td>
-              <td><?= htmlspecialchars($m['so_dien_thoai'] ?? '-') ?></td>
+              <td><?= htmlspecialchars($m['phone'] ?? '-') ?></td>
               <td><?= htmlspecialchars($m['email'] ?? '-') ?></td>
-              <td><?= htmlspecialchars($m['ten_phong_ban'] ?? '-') ?></td>
+              <td><?= htmlspecialchars($m['department_name'] ?? '-') ?></td>
               <td>
                 <?php
                   $role_map = [
-                    'doi_truong' => 'Đội trưởng',
-                    'chu_nhiem' => 'Đội trưởng',
-                    'doi_pho' => 'Đội phó',
-                    'pho_chu_nhiem' => 'Đội phó',
-                    'truong_ban' => 'Trưởng ban',
-                    'thanh_vien' => 'Thành viên'
+                    'leader' => 'Đội trưởng',
+                    'vice_leader' => 'Đội phó',
+                    'head' => 'Trưởng ban',
+                    'member' => 'Thành viên'
                   ];
-                  $vai_tro = $m['vai_tro'] ?? 'thanh_vien';
-                  $role_text = $role_map[$vai_tro] ?? 'Thành viên';
-                  $role_class = (in_array($vai_tro, ['doi_truong', 'chu_nhiem'])) ? 'president' : '';
+                  $role = $m['role'] ?? 'member';
+                  $role_text = $role_map[$role] ?? 'Thành viên';
+                  $role_class = (in_array($role, ['leader'])) ? 'president' : '';
                 ?>
                 <div style="display:flex;align-items:center;gap:8px;">
                   <span class="role <?= $role_class ?>">
                     <?= $role_text ?>
                   </span>
-                  <?php if ($user_id == $chu_nhiem_id && $m['user_id'] != $chu_nhiem_id): ?>
+                  <?php if ($user_id == $leader_id && $m['user_id'] != $leader_id): ?>
                     <button class="btn-edit-role" onclick="openEditRole(<?= $m['user_id'] ?>, <?= $club_id ?>)" title="Chỉnh sửa chức vụ">✏️</button>
                   <?php endif; ?>
                 </div>
@@ -229,7 +225,6 @@ function openModal() {
             if (modal) {
                 modal.classList.add('show');
                 
-                // Khởi tạo lại validation và counter sau khi HTML được load
                 setTimeout(() => {
                     if (typeof initFormValidation === 'function') {
                         initFormValidation();

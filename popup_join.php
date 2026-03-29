@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 
 // Lấy thông tin người dùng
-$stmt = $conn->prepare("SELECT ho_ten, username, email, so_dien_thoai FROM users WHERE id = ?");
+$stmt = $conn->prepare("SELECT full_name, username, email, phone FROM users WHERE id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $user = $stmt->get_result()->fetch_assoc();
@@ -20,20 +20,20 @@ $user = $stmt->get_result()->fetch_assoc();
 $club_id = $_GET['club_id'] ?? 0;
 
 // Lấy thông tin CLB
-$stmt = $conn->prepare("SELECT ten_clb FROM clubs WHERE id = ?");
+$stmt = $conn->prepare("SELECT name FROM clubs WHERE id = ?");
 $stmt->bind_param("i", $club_id);
 $stmt->execute();
 $club = $stmt->get_result()->fetch_assoc();
 
 // Kiểm tra xem người dùng đã là thành viên hoặc đã gửi yêu cầu chưa
-$stmt = $conn->prepare("SELECT id, trang_thai FROM club_members WHERE club_id = ? AND user_id = ?");
+$stmt = $conn->prepare("SELECT id, status FROM members WHERE club_id = ? AND user_id = ?");
 $stmt->bind_param("ii", $club_id, $user_id);
 $stmt->execute();
 $existing = $stmt->get_result()->fetch_assoc();
 
 if ($existing) {
     $message = "Bạn đã là thành viên của CLB này.";
-    if ($existing['trang_thai'] == 'cho_duyet') {
+    if ($existing['status'] == 'pending') {
         $message = "Bạn đã gửi yêu cầu tham gia CLB này. Vui lòng chờ duyệt!";
     }
     echo "<div class='modal show' id='joinClubModal'><div class='modal-content'><p>{$message}</p><div style='text-align:center;margin-top:20px'><button class='btn-submit-full' onclick='closeJoinModal()'>Đóng</button></div></div></div>";
@@ -61,16 +61,16 @@ unset($_SESSION['join_error']);
         </svg>
       </div>
       <h2 id="joinModalTitle">Tham gia Câu Lạc Bộ</h2>
-      <p class="modal-subtitle">Hoàn thành thông tin để gửi yêu cầu tham gia <strong><?= htmlspecialchars($club['ten_clb'] ?? 'CLB') ?></strong></p>
+      <p class="modal-subtitle">Hoàn thành thông tin để gửi yêu cầu tham gia <strong><?= htmlspecialchars($club['name'] ?? 'CLB') ?></strong></p>
     </div>
 
     <!-- Thông tin người đăng ký -->
     <div class="member-info">
       <div class="member-avatar">
-        <?= !empty($user['ho_ten']) ? mb_substr($user['ho_ten'], 0, 1, 'UTF-8') : 'U' ?>
+        <?= !empty($user['full_name']) ? mb_substr($user['full_name'], 0, 1, 'UTF-8') : 'U' ?>
       </div>
       <div class="member-details">
-        <h4><?= htmlspecialchars($user['ho_ten'] ?? 'Người dùng') ?></h4>
+        <h4><?= htmlspecialchars($user['full_name'] ?? 'Người dùng') ?></h4>
         <p><?= htmlspecialchars($user['email'] ?? '') ?></p>
       </div>
       <div class="member-badge">
@@ -95,26 +95,26 @@ unset($_SESSION['join_error']);
       <input type="hidden" name="user_id" value="<?= (int)$user_id ?>">
 
       <div class="form-group">
-        <label for="ho_ten">
+        <label for="full_name">
           Họ và tên <span class="required" aria-label="bắt buộc">*</span>
         </label>
         <input type="text" 
-               id="ho_ten"
-               name="ho_ten" 
-               value="<?= htmlspecialchars($user['ho_ten'] ?? '') ?>" 
+               id="full_name"
+               name="full_name" 
+               value="<?= htmlspecialchars($user['full_name'] ?? '') ?>" 
                readonly 
                aria-readonly="true">
         <span class="field-note">Thông tin từ tài khoản của bạn</span>
       </div>
 
       <div class="form-group">
-        <label for="so_dien_thoai">
+        <label for="phone">
           Số điện thoại <span class="required" aria-label="bắt buộc">*</span>
         </label>
         <input type="tel" 
-               id="so_dien_thoai"
-               name="so_dien_thoai" 
-               value="<?= htmlspecialchars($user['so_dien_thoai'] ?? '') ?>" 
+               id="phone"
+               name="phone" 
+               value="<?= htmlspecialchars($user['phone'] ?? '') ?>" 
                placeholder="Nhập số điện thoại của bạn"
                pattern="[0-9]{10,11}"
                maxlength="11"
@@ -138,36 +138,36 @@ unset($_SESSION['join_error']);
       </div>
 
       <div class="form-group">
-        <label for="phong_ban_id">
+        <label for="department_id">
           Phòng ban <span class="optional">(Tùy chọn)</span>
         </label>
-        <select id="phong_ban_id" name="phong_ban_id">
+        <select id="department_id" name="department_id">
           <option value="">-- Chưa chọn phòng ban --</option>
           <?php
           // Lấy danh sách phòng ban của CLB
-          $stmt_pb = $conn->prepare("SELECT id, ten_phong_ban FROM phong_ban WHERE club_id = ? ORDER BY ten_phong_ban ASC");
-          $stmt_pb->bind_param("i", $club_id);
-          $stmt_pb->execute();
-          $phong_bans = $stmt_pb->get_result()->fetch_all(MYSQLI_ASSOC);
-          $stmt_pb->close();
+          $stmt_dept = $conn->prepare("SELECT id, name FROM departments WHERE club_id = ? ORDER BY name ASC");
+          $stmt_dept->bind_param("i", $club_id);
+          $stmt_dept->execute();
+          $departments = $stmt_dept->get_result()->fetch_all(MYSQLI_ASSOC);
+          $stmt_dept->close();
           
-          foreach ($phong_bans as $pb):
+          foreach ($departments as $dept):
           ?>
-            <option value="<?= $pb['id'] ?>"><?= htmlspecialchars($pb['ten_phong_ban']) ?></option>
+            <option value="<?= $dept['id'] ?>"><?= htmlspecialchars($dept['name']) ?></option>
           <?php endforeach; ?>
         </select>
         <span class="field-note">Bạn có thể chọn phòng ban muốn tham gia</span>
       </div>
 
       <div class="form-group">
-        <label for="loi_nhan">
+        <label for="message">
           Lời nhắn <span class="optional">(Tùy chọn)</span>
         </label>
-        <textarea id="loi_nhan"
-                  name="loi_nhan" 
+        <textarea id="message"
+                  name="message" 
                   rows="4" 
                   maxlength="300"
-                  placeholder="Giới thiệu bản thân và lý do bạn muốn tham gia CLB..."><?= htmlspecialchars($_POST['loi_nhan'] ?? '') ?></textarea>
+                  placeholder="Giới thiệu bản thân và lý do bạn muốn tham gia CLB..."><?= htmlspecialchars($_POST['message'] ?? '') ?></textarea>
       </div>
 
       <div class="form-agreement">

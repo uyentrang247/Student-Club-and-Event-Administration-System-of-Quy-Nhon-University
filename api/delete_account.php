@@ -40,8 +40,8 @@ if ($confirm_text !== 'XÓA TÀI KHOẢN') {
     json_response(['success' => false, 'message' => 'Vui lòng nhập chính xác "XÓA TÀI KHOẢN" để xác nhận'], HttpStatus::BAD_REQUEST);
 }
 
-// Kiểm tra xem user có đang là chủ nhiệm CLB nào không
-$check_owner_sql = "SELECT COUNT(*) as count FROM clubs WHERE chu_nhiem_id = ?";
+// Kiểm tra xem user có đang là leader của CLB nào không (cột leader_id)
+$check_owner_sql = "SELECT COUNT(*) as count FROM clubs WHERE leader_id = ?";
 $check_stmt = $conn->prepare($check_owner_sql);
 $check_stmt->bind_param("i", $user_id);
 $check_stmt->execute();
@@ -52,7 +52,7 @@ $check_stmt->close();
 if ($owner_count > 0) {
     json_response([
         'success' => false, 
-        'message' => 'Bạn đang là chủ nhiệm của ' . $owner_count . ' CLB. Vui lòng chuyển quyền chủ nhiệm hoặc xóa CLB trước khi xóa tài khoản.'
+        'message' => 'Bạn đang là leader của ' . $owner_count . ' CLB. Vui lòng chuyển quyền leader hoặc xóa CLB trước khi xóa tài khoản.'
     ], HttpStatus::BAD_REQUEST);
 }
 
@@ -77,11 +77,13 @@ try {
     
     // Xóa tất cả dữ liệu liên quan (cascade delete sẽ tự động xử lý)
     // Các bảng có foreign key với ON DELETE CASCADE sẽ tự động xóa:
-    // - club_members
+    // - members (thay vì club_members)
     // - event_registrations
     // - notifications
     // - join_requests
-    // - user_roles
+    // - reviews
+    // - media (uploader_id - SET NULL)
+    // - gallery (uploaded_by - SET NULL)
     
     // Xóa user (cascade sẽ tự động xóa các bảng liên quan)
     $delete_sql = "DELETE FROM users WHERE id = ?";
@@ -119,4 +121,4 @@ try {
         'message' => 'Lỗi khi xóa tài khoản: ' . $e->getMessage()
     ], HttpStatus::INTERNAL_ERROR);
 }
-
+?>

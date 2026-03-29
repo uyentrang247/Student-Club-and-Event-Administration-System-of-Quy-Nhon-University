@@ -27,7 +27,7 @@ if (!verify_csrf_token($csrf_token)) {
 
 // Nhận dữ liệu
 $event_id = isset($_POST['event_id']) ? (int)$_POST['event_id'] : 0;
-$trang_thai = isset($_POST['trang_thai']) ? trim($_POST['trang_thai']) : '';
+$status = isset($_POST['status']) ? trim($_POST['status']) : '';
 
 // Validate
 if ($event_id <= 0) {
@@ -35,14 +35,14 @@ if ($event_id <= 0) {
     exit;
 }
 
-$allowed_statuses = ['sap_dien_ra', 'dang_dien_ra', 'da_ket_thuc', 'da_huy'];
-if (!in_array($trang_thai, $allowed_statuses)) {
+$allowed_statuses = ['upcoming', 'ongoing', 'completed', 'cancelled'];
+if (!in_array($status, $allowed_statuses)) {
     echo json_encode(['success' => false, 'message' => 'Trạng thái không hợp lệ']);
     exit;
 }
 
 // Kiểm tra sự kiện tồn tại và lấy thông tin CLB
-$check_sql = "SELECT e.club_id, e.created_by, c.chu_nhiem_id 
+$check_sql = "SELECT e.club_id, e.created_by, c.leader_id 
               FROM events e 
               LEFT JOIN clubs c ON e.club_id = c.id 
               WHERE e.id = ?";
@@ -59,19 +59,19 @@ if (!$event_info) {
 
 $club_id = $event_info['club_id'];
 $user_id = $_SESSION['user_id'];
-$is_owner = isset($event_info['chu_nhiem_id']) && ((int)$event_info['chu_nhiem_id'] === (int)$user_id);
+$is_owner = isset($event_info['leader_id']) && ((int)$event_info['leader_id'] === (int)$user_id);
 $is_creator = isset($event_info['created_by']) && ((int)$event_info['created_by'] === (int)$user_id);
 
 // Kiểm tra vai trò của người dùng trong CLB
 $user_role = 'guest';
-$role_sql = "SELECT vai_tro FROM club_members WHERE club_id = ? AND user_id = ? AND trang_thai = 'dang_hoat_dong' LIMIT 1";
+$role_sql = "SELECT role FROM members WHERE club_id = ? AND user_id = ? AND status = 'active' LIMIT 1";
 $role_stmt = $conn->prepare($role_sql);
 if ($role_stmt) {
     $role_stmt->bind_param("ii", $club_id, $user_id);
     $role_stmt->execute();
     $role_res = $role_stmt->get_result();
     if ($role_res && $role_res->num_rows > 0) {
-        $user_role = strtolower($role_res->fetch_assoc()['vai_tro'] ?? 'guest');
+        $user_role = strtolower($role_res->fetch_assoc()['role'] ?? 'guest');
     }
     $role_stmt->close();
 }
@@ -80,27 +80,16 @@ if ($role_stmt) {
 function normalize_role_quick($role) {
     $role = strtolower(trim($role));
     $map = [
-        'đội phó' => 'doi_pho',
-        'doi pho' => 'doi_pho',
-        'doi_pho' => 'doi_pho',
-        'đội trưởng' => 'doi_truong',
-        'doi truong' => 'doi_truong',
-        'doi_truong' => 'doi_truong',
-        'trưởng ban' => 'truong_ban',
-        'truong ban' => 'truong_ban',
-        'truong_ban' => 'truong_ban',
-        'phó chủ nhiệm' => 'pho_chu_nhiem',
-        'pho chu nhiem' => 'pho_chu_nhiem',
-        'pho_chu_nhiem' => 'pho_chu_nhiem',
-        'chủ nhiệm' => 'chu_nhiem',
-        'chu nhiem' => 'chu_nhiem',
-        'chu_nhiem' => 'chu_nhiem'
+        'vice_leader' => 'vice_leader',
+        'leader' => 'leader',
+        'head' => 'head',
+        'member' => 'member'
     ];
     return $map[$role] ?? $role;
 }
 
 $role_key = normalize_role_quick($user_role);
-$can_manage = $is_owner || $is_creator || in_array($role_key, ['doi_pho', 'chu_nhiem', 'pho_chu_nhiem', 'truong_ban', 'doi_truong']);
+$can_manage = $is_owner || $is_creator || in_array($role_key, ['leader', 'vice_leader', 'head']);
 
 if (!$can_manage) {
     echo json_encode(['success' => false, 'message' => 'Bạn không có quyền thay đổi trạng thái sự kiện này']);
@@ -108,9 +97,9 @@ if (!$can_manage) {
 }
 
 // Cập nhật trạng thái
-$update_sql = "UPDATE events SET trang_thai = ? WHERE id = ?";
+$update_sql = "UPDATE events SET status = ? WHERE id = ?";
 $update_stmt = $conn->prepare($update_sql);
-$update_stmt->bind_param("si", $trang_thai, $event_id);
+$update_stmt->bind_param("si", $status, $event_id);
 
 if ($update_stmt->execute()) {
     $update_stmt->close();
@@ -121,4 +110,4 @@ if ($update_stmt->execute()) {
 }
 
 $conn->close();
-
+?>

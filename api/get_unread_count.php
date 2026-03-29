@@ -11,6 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
+// Không cần thay đổi vì bảng notifications giữ nguyên cấu trúc
 $sql = "SELECT COUNT(*) as count FROM notifications 
         WHERE user_id = ? AND is_read = 0";
 
@@ -27,3 +28,4 @@ if ($stmt = $conn->prepare($sql)) {
 }
 
 // Don't close connection - it's managed globally
+?>

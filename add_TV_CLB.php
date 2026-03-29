@@ -120,10 +120,10 @@ $csrf_token_value = generate_csrf_token();
         </div>
         <div id="default-users-list" class="users-grid">
             <?php
-            $sql = "SELECT id, ho_ten, email
+            $sql = "SELECT id, full_name, email
                     FROM users 
                     WHERE id NOT IN (
-                        SELECT user_id FROM club_members WHERE club_id = ?
+                        SELECT user_id FROM members WHERE club_id = ?
                     ) 
                     ORDER BY RAND() 
                     LIMIT 12";
@@ -135,12 +135,12 @@ $csrf_token_value = generate_csrf_token();
 
                 if ($result->num_rows > 0) {
                     while ($user = $result->fetch_assoc()) {
-                        $ho_ten = htmlspecialchars($user['ho_ten'] ?? 'Chưa đặt tên', ENT_QUOTES, 'UTF-8');
+                        $full_name = htmlspecialchars($user['full_name'] ?? 'Chưa đặt tên', ENT_QUOTES, 'UTF-8');
                         $email  = htmlspecialchars($user['email'] ?? '', ENT_QUOTES, 'UTF-8');
                         $userId = $user['id'];
 
                         echo "
-                        <div class='user-card' data-userid='$userId' data-name='$ho_ten' data-email='$email'>
+                        <div class='user-card' data-userid='$userId' data-name='$full_name' data-email='$email'>
                             <div class='user-avatar'>
                                 <svg width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'>
                                     <path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'></path>
@@ -148,7 +148,7 @@ $csrf_token_value = generate_csrf_token();
                                 </svg>
                             </div>
                             <div class='user-info'>
-                                <div class='user-name'>$ho_ten</div>
+                                <div class='user-name'>$full_name</div>
                                 <div class='user-email'>$email</div>
                             </div>
                             <button type='button' class='add-this-user-btn'>
@@ -277,7 +277,7 @@ $csrf_token_value = generate_csrf_token();
                 const div = document.createElement('div');
                 div.className = 'user-card';
                 div.dataset.userid = user.id;
-                div.dataset.name = user.ho_ten || 'Không tên';
+                div.dataset.name = user.full_name || 'Không tên';
                 div.dataset.email = user.email;
 
                 div.innerHTML = `
@@ -288,7 +288,7 @@ $csrf_token_value = generate_csrf_token();
                         </svg>
                     </div>
                     <div class="user-info">
-                        <div class="user-name">${user.ho_ten || 'Không tên'}</div>
+                        <div class="user-name">${user.full_name || 'Không tên'}</div>
                         <div class="user-email">${user.email}</div>
                     </div>
                     <button type="button" class="add-this-user-btn">
@@ -302,7 +302,7 @@ $csrf_token_value = generate_csrf_token();
 
                 div.addEventListener('click', (e) => {
                     if (e.target.tagName === 'BUTTON') e.stopPropagation();
-                    selectUser(user.id, user.ho_ten || 'Không tên', user.email, div);
+                    selectUser(user.id, user.full_name || 'Không tên', user.email, div);
                 });
 
                 suggestionsBox.appendChild(div);
@@ -336,7 +336,7 @@ $csrf_token_value = generate_csrf_token();
             data.departments.forEach(d => {
                 const opt = document.createElement('option');
                 opt.value = d.id;
-                opt.textContent = d.ten_phong_ban;
+                opt.textContent = d.name;
                 deptSelect.appendChild(opt);
             });
         } catch (err) {
@@ -349,8 +349,8 @@ $csrf_token_value = generate_csrf_token();
     // Thêm thành viên
     btnAddMember.addEventListener('click', function () {
         if (!selectedUser) return showNotification('Vui lòng chọn thành viên!', 'warning');
-        const phongBanId = deptSelect ? deptSelect.value : '';
-        if (!phongBanId) return showNotification('Vui lòng chọn phòng ban trước khi thêm!', 'warning');
+        const departmentId = deptSelect ? deptSelect.value : '';
+        if (!departmentId) return showNotification('Vui lòng chọn phòng ban trước khi thêm!', 'warning');
 
         btnAddMember.disabled = true;
         btnAddMember.innerHTML = '<span class="spinner"></span> Đang thêm...';
@@ -358,7 +358,7 @@ $csrf_token_value = generate_csrf_token();
         const formData = new URLSearchParams();
         formData.append('club_id', clubId);
         formData.append('user_id', selectedUser.userId);
-        formData.append('phong_ban_id', phongBanId);
+        formData.append('department_id', departmentId);
         if (window.CSRF_FIELD && window.CSRF_TOKEN) {
             formData.append(window.CSRF_FIELD, window.CSRF_TOKEN);
         }

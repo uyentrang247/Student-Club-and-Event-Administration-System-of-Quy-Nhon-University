@@ -12,7 +12,7 @@
                 </svg>
             </div>
             <h2 id="addMemberTitle">Thêm thành viên</h2>
-            <p class="modal-subtitle">Vào phòng ban <strong><?= htmlspecialchars($phongban['ten_phong_ban'] ?? '') ?></strong></p>
+            <p class="modal-subtitle">Vào phòng ban <strong><?= htmlspecialchars($department['name'] ?? '') ?></strong></p>
             <button class="close-btn" onclick="closeAddMemberPopup()" aria-label="Đóng">&times;</button>
         </div>
 
@@ -63,7 +63,7 @@
             <input type="hidden" id="selectedUser">
             <input type="hidden" id="selectedUserName">
             <input type="hidden" id="selectedUserEmail">
-            <input type="hidden" id="pb_id_input">
+            <input type="hidden" id="department_id_input">
         </div>
 
         <div class="modal-footer">

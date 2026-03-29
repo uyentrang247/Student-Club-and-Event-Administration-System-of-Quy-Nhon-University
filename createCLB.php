@@ -75,7 +75,7 @@ $flash = get_flash_message();
                         <line x1="12" y1="3" x2="12" y2="15"></line>
                     </svg>
                     <span id="uploadText">Chọn ảnh logo</span>
-                    <input type="file" id="fileUpload" name="logo_url" accept="image/*" required style="display: none;">
+                    <input type="file" id="fileUpload" name="logo" accept="image/*" required style="display: none;">
                 </label>
             </div>
 
@@ -88,7 +88,7 @@ $flash = get_flash_message();
                     </svg>
                     Tên câu lạc bộ
                 </label>
-                <input type="text" name="ten_clb" placeholder="VD: Câu lạc bộ Lập trình" maxlength="150" required>
+                <input type="text" name="name" placeholder="VD: Câu lạc bộ Lập trình" maxlength="150" required>
             </div>
 
             <div class="form-group">
@@ -102,7 +102,7 @@ $flash = get_flash_message();
                     </svg>
                     Mô tả
                 </label>
-                <textarea name="mo_ta" rows="4" placeholder="Giới thiệu về mục đích, hoạt động của câu lạc bộ..."></textarea>
+                <textarea name="description" rows="4" placeholder="Giới thiệu về mục đích, hoạt động của câu lạc bộ..."></textarea>
             </div>
 
             <div class="form-row">
@@ -114,14 +114,14 @@ $flash = get_flash_message();
                         </svg>
                         Lĩnh vực hoạt động
                     </label>
-                    <select name="linh_vuc" required>
+                    <select name="category" required>
                         <option value="">Chọn lĩnh vực</option>
-                        <option value="Học thuật">📚 Học thuật</option>
-                        <option value="Thể thao">⚽ Thể thao</option>
-                        <option value="Nghệ thuật">🎨 Nghệ thuật</option>
-                        <option value="Tình nguyện">❤️ Tình nguyện</option>
-                        <option value="Kỹ năng">💡 Kỹ năng</option>
-                        <option value="Khác">🔖 Khác</option>
+                        <option value="Academic">📚 Học thuật</option>
+                        <option value="Sport">⚽ Thể thao</option>
+                        <option value="Art">🎨 Nghệ thuật</option>
+                        <option value="Volunteer">❤️ Tình nguyện</option>
+                        <option value="Skill">💡 Kỹ năng</option>
+                        <option value="Other">🔖 Khác</option>
                     </select>
                 </div>
 
@@ -135,7 +135,7 @@ $flash = get_flash_message();
                         </svg>
                         Số thành viên dự kiến
                     </label>
-                    <input type="number" name="so_thanh_vien" min="1" placeholder="VD: 50">
+                    <input type="number" name="total_members" min="1" placeholder="VD: 50">
                 </div>
             </div>
 
@@ -221,4 +221,4 @@ function validateForm() {
 
 <?php
 load_footer();
-?> 
+?>

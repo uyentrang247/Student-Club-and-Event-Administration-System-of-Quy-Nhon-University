@@ -5,7 +5,6 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../assets/database/connect.php';
 
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    // redirect về trang đăng nhập gốc thay vì /admin/login.php (không tồn tại)
     header('Location: ../login.php');
     exit;
 }
@@ -31,34 +30,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 
     if ($message_type !== 'error' && ($action === 'create' || $action === 'update')) {
-        $ten_su_kien = trim($_POST['ten_su_kien'] ?? '');
+        $name = trim($_POST['name'] ?? '');
         $club_id = !empty($_POST['club_id']) ? (int)$_POST['club_id'] : 0;
-        $dia_diem = trim($_POST['dia_diem'] ?? '');
-        $thoi_gian_bat_dau = $_POST['thoi_gian_bat_dau'] ?? null;
-        $thoi_gian_ket_thuc = $_POST['thoi_gian_ket_thuc'] ?? null;
-        $so_luong_toi_da = isset($_POST['so_luong_toi_da']) ? max(0, (int)$_POST['so_luong_toi_da']) : null;
-        $han_dang_ky = $_POST['han_dang_ky'] ?? null;
-        $trang_thai = $_POST['trang_thai'] ?? 'sap_dien_ra';
-        $mo_ta = trim($_POST['mo_ta'] ?? '');
+        $location = trim($_POST['location'] ?? '');
+        $start_time = $_POST['start_time'] ?? null;
+        $end_time = $_POST['end_time'] ?? null;
+        $max_participants = isset($_POST['max_participants']) ? max(0, (int)$_POST['max_participants']) : null;
+        $reg_deadline = $_POST['reg_deadline'] ?? null;
+        $status = $_POST['status'] ?? 'upcoming';
+        $short_desc = trim($_POST['short_desc'] ?? '');
 
-        $valid_status = ['sap_dien_ra','dang_dien_ra','da_ket_thuc','da_huy'];
-        if ($ten_su_kien === '' || $club_id <= 0) {
+        $valid_status = ['upcoming','ongoing','completed','cancelled'];
+        if ($name === '' || $club_id <= 0) {
             $message = 'Vui lòng nhập tên sự kiện và chọn Câu lạc bộ.';
             $message_type = 'error';
-        } elseif (!in_array($trang_thai, $valid_status, true)) {
+        } elseif (!in_array($status, $valid_status, true)) {
             $message = 'Trạng thái không hợp lệ.';
             $message_type = 'error';
-        } elseif (!empty($thoi_gian_bat_dau) && !empty($thoi_gian_ket_thuc) && strtotime($thoi_gian_bat_dau) >= strtotime($thoi_gian_ket_thuc)) {
+        } elseif (!empty($start_time) && !empty($end_time) && strtotime($start_time) >= strtotime($end_time)) {
             $message = 'Thời gian bắt đầu phải trước thời gian kết thúc.';
             $message_type = 'error';
-        } elseif (!empty($han_dang_ky) && !empty($thoi_gian_bat_dau) && strtotime($han_dang_ky) > strtotime($thoi_gian_bat_dau)) {
+        } elseif (!empty($reg_deadline) && !empty($start_time) && strtotime($reg_deadline) > strtotime($start_time)) {
             $message = 'Hạn đăng ký phải trước thời gian bắt đầu sự kiện.';
             $message_type = 'error';
         } else {
             if ($action === 'create') {
-                $stmt = $conn->prepare("INSERT INTO events (club_id, ten_su_kien, mo_ta, dia_diem, thoi_gian_bat_dau, thoi_gian_ket_thuc, so_luong_toi_da, han_dang_ky, trang_thai, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt = $conn->prepare("INSERT INTO events (club_id, name, short_desc, location, start_time, end_time, max_participants, reg_deadline, status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $created_by = $_SESSION['admin_id'] ?? 0;
-                $stmt->bind_param("isssssissi", $club_id, $ten_su_kien, $mo_ta, $dia_diem, $thoi_gian_bat_dau, $thoi_gian_ket_thuc, $so_luong_toi_da, $han_dang_ky, $trang_thai, $created_by);
+                $stmt->bind_param("issssssssi", $club_id, $name, $short_desc, $location, $start_time, $end_time, $max_participants, $reg_deadline, $status, $created_by);
                 if ($stmt->execute()) {
                     $_SESSION['flash_events'] = ['message' => 'Thêm sự kiện thành công.', 'type' => 'success'];
                     header('Location: events.php');
@@ -73,8 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $message = 'Thiếu thông tin sự kiện.';
                     $message_type = 'error';
                 } else {
-                    $stmt = $conn->prepare("UPDATE events SET club_id=?, ten_su_kien=?, mo_ta=?, dia_diem=?, thoi_gian_bat_dau=?, thoi_gian_ket_thuc=?, so_luong_toi_da=?, han_dang_ky=?, trang_thai=? WHERE id=?");
-                    $stmt->bind_param("isssssissi", $club_id, $ten_su_kien, $mo_ta, $dia_diem, $thoi_gian_bat_dau, $thoi_gian_ket_thuc, $so_luong_toi_da, $han_dang_ky, $trang_thai, $id);
+                    $stmt = $conn->prepare("UPDATE events SET club_id=?, name=?, short_desc=?, location=?, start_time=?, end_time=?, max_participants=?, reg_deadline=?, status=? WHERE id=?");
+                    $stmt->bind_param("issssssssi", $club_id, $name, $short_desc, $location, $start_time, $end_time, $max_participants, $reg_deadline, $status, $id);
                     if ($stmt->execute()) {
                         $_SESSION['flash_events'] = ['message' => 'Cập nhật sự kiện thành công.', 'type' => 'success'];
                         header('Location: events.php');
@@ -117,7 +116,7 @@ $params = [];
 $types = '';
 
 if (!empty($search)) {
-    $where_clause = "WHERE e.ten_su_kien LIKE ? OR c.ten_clb LIKE ?";
+    $where_clause = "WHERE e.name LIKE ? OR c.name LIKE ?";
     $search_param = '%' . $search . '%';
     $params[] = $search_param;
     $params[] = $search_param;
@@ -137,7 +136,7 @@ if (!empty($params)) {
 }
 $total_pages = ceil($total_events / $items_per_page);
 
-$sql = "SELECT e.id, e.ten_su_kien, c.ten_clb, e.thoi_gian_bat_dau, e.thoi_gian_ket_thuc, e.trang_thai, e.created_at, e.dia_diem
+$sql = "SELECT e.id, e.name, c.name as club_name, e.start_time, e.end_time, e.status, e.created_at, e.location
         FROM events e
         LEFT JOIN clubs c ON e.club_id = c.id
         $where_clause
@@ -158,36 +157,36 @@ $events = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
 // Danh sách CLB
-$clubs = $conn->query("SELECT id, ten_clb FROM clubs ORDER BY ten_clb ASC")->fetch_all(MYSQLI_ASSOC);
+$clubs = $conn->query("SELECT id, name FROM clubs ORDER BY name ASC")->fetch_all(MYSQLI_ASSOC);
 
 // Tự động cập nhật trạng thái dựa trên thời gian
 $now = new DateTime();
 foreach ($events as &$evt) {
-    if (empty($evt['thoi_gian_bat_dau']) && empty($evt['thoi_gian_ket_thuc'])) {
+    if (empty($evt['start_time']) && empty($evt['end_time'])) {
         continue;
     }
-    $current_status = $evt['trang_thai'];
+    $current_status = $evt['status'];
     $target_status = $current_status;
 
     try {
-        $start = !empty($evt['thoi_gian_bat_dau']) ? new DateTime($evt['thoi_gian_bat_dau']) : null;
-        $end   = !empty($evt['thoi_gian_ket_thuc']) ? new DateTime($evt['thoi_gian_ket_thuc']) : null;
+        $start = !empty($evt['start_time']) ? new DateTime($evt['start_time']) : null;
+        $end   = !empty($evt['end_time']) ? new DateTime($evt['end_time']) : null;
 
         // Ưu tiên nếu sự kiện đã hủy thì giữ nguyên
-        if ($current_status === 'da_huy') {
-            $target_status = 'da_huy';
+        if ($current_status === 'cancelled') {
+            $target_status = 'cancelled';
         } elseif ($end && $now >= $end) {
-            $target_status = 'da_ket_thuc';
+            $target_status = 'completed';
         } elseif ($start && $now >= $start && (!$end || $now < $end)) {
-            $target_status = 'dang_dien_ra';
+            $target_status = 'ongoing';
         } elseif ($start && $now < $start) {
-            $target_status = 'sap_dien_ra';
+            $target_status = 'upcoming';
         }
 
         // Đồng bộ DB để tránh trạng thái hiển thị lệch
         if ($target_status !== $current_status) {
-            $evt['trang_thai'] = $target_status;
-            $update_stmt = $conn->prepare("UPDATE events SET trang_thai = ? WHERE id = ?");
+            $evt['status'] = $target_status;
+            $update_stmt = $conn->prepare("UPDATE events SET status = ? WHERE id = ?");
             if ($update_stmt) {
                 $update_stmt->bind_param("si", $target_status, $evt['id']);
                 $update_stmt->execute();
@@ -255,49 +254,49 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                             <input type="hidden" name="action" value="create">
                             <div class="form-group">
                                 <label>Tên sự kiện</label>
-                                <input type="text" name="ten_su_kien" required>
+                                <input type="text" name="name" required>
                             </div>
                             <div class="form-group">
                                 <label>Câu lạc bộ</label>
                                 <select name="club_id" required>
                                     <option value="">-- Chọn CLB --</option>
                                     <?php foreach ($clubs as $club): ?>
-                                        <option value="<?= $club['id'] ?>"><?= htmlspecialchars($club['ten_clb']) ?></option>
+                                        <option value="<?= $club['id'] ?>"><?= htmlspecialchars($club['name']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>Địa điểm</label>
-                                <input type="text" name="dia_diem" placeholder="Hội trường, phòng, link...">
+                                <input type="text" name="location" placeholder="Hội trường, phòng, link...">
                             </div>
                             <div class="form-group">
                                 <label>Thời gian bắt đầu</label>
-                                <input type="datetime-local" name="thoi_gian_bat_dau">
+                                <input type="datetime-local" name="start_time">
                             </div>
                             <div class="form-group">
                                 <label>Thời gian kết thúc</label>
-                                <input type="datetime-local" name="thoi_gian_ket_thuc">
+                                <input type="datetime-local" name="end_time">
                             </div>
                             <div class="form-group">
                                 <label>Hạn đăng ký</label>
-                                <input type="datetime-local" name="han_dang_ky">
+                                <input type="datetime-local" name="reg_deadline">
                             </div>
                             <div class="form-group">
                                 <label>Số lượng tối đa</label>
-                                <input type="number" name="so_luong_toi_da" min="0" value="">
+                                <input type="number" name="max_participants" min="0" value="">
                             </div>
                             <div class="form-group">
                                 <label>Trạng thái</label>
-                                <select name="trang_thai">
-                                    <option value="sap_dien_ra">Sắp diễn ra</option>
-                                    <option value="dang_dien_ra">Đang diễn ra</option>
-                                    <option value="da_ket_thuc">Đã kết thúc</option>
-                                    <option value="da_huy">Đã hủy</option>
+                                <select name="status">
+                                    <option value="upcoming">Sắp diễn ra</option>
+                                    <option value="ongoing">Đang diễn ra</option>
+                                    <option value="completed">Đã kết thúc</option>
+                                    <option value="cancelled">Đã hủy</option>
                                 </select>
                             </div>
                             <div class="form-group" style="grid-column:1/-1;">
                                 <label>Mô tả</label>
-                                <textarea name="mo_ta" rows="3" placeholder="Giới thiệu ngắn về sự kiện"></textarea>
+                                <textarea name="short_desc" rows="3" placeholder="Giới thiệu ngắn về sự kiện"></textarea>
                             </div>
                             <div class="form-actions">
                                 <button type="submit" class="btn-primary">Lưu</button>
@@ -313,7 +312,7 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
             <div class="modal open" id="editEventModal">
                 <div class="modal-dialog">
                     <div class="modal-header">
-                        <h3>Chỉnh sửa: <?= htmlspecialchars($edit_event['ten_su_kien']) ?></h3>
+                        <h3>Chỉnh sửa: <?= htmlspecialchars($edit_event['name']) ?></h3>
                         <button type="button" class="modal-close" id="btnCloseEditEvent">&times;</button>
                     </div>
                     <div class="modal-body">
@@ -323,49 +322,49 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                             <input type="hidden" name="id" value="<?= $edit_event['id'] ?>">
                             <div class="form-group">
                                 <label>Tên sự kiện</label>
-                                <input type="text" name="ten_su_kien" value="<?= htmlspecialchars($edit_event['ten_su_kien']) ?>" required>
+                                <input type="text" name="name" value="<?= htmlspecialchars($edit_event['name']) ?>" required>
                             </div>
                             <div class="form-group">
                                 <label>Câu lạc bộ</label>
                                 <select name="club_id" required>
                                     <option value="">-- Chọn CLB --</option>
                                     <?php foreach ($clubs as $club): ?>
-                                        <option value="<?= $club['id'] ?>" <?= $edit_event['club_id'] == $club['id'] ? 'selected' : '' ?>><?= htmlspecialchars($club['ten_clb']) ?></option>
+                                        <option value="<?= $club['id'] ?>" <?= $edit_event['club_id'] == $club['id'] ? 'selected' : '' ?>><?= htmlspecialchars($club['name']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>Địa điểm</label>
-                                <input type="text" name="dia_diem" value="<?= htmlspecialchars($edit_event['dia_diem'] ?? '') ?>">
+                                <input type="text" name="location" value="<?= htmlspecialchars($edit_event['location'] ?? '') ?>">
                             </div>
                             <div class="form-group">
                                 <label>Thời gian bắt đầu</label>
-                                <input type="datetime-local" name="thoi_gian_bat_dau" value="<?= !empty($edit_event['thoi_gian_bat_dau']) ? date('Y-m-d\TH:i', strtotime($edit_event['thoi_gian_bat_dau'])) : '' ?>">
+                                <input type="datetime-local" name="start_time" value="<?= !empty($edit_event['start_time']) ? date('Y-m-d\TH:i', strtotime($edit_event['start_time'])) : '' ?>">
                             </div>
                             <div class="form-group">
                                 <label>Thời gian kết thúc</label>
-                                <input type="datetime-local" name="thoi_gian_ket_thuc" value="<?= !empty($edit_event['thoi_gian_ket_thuc']) ? date('Y-m-d\TH:i', strtotime($edit_event['thoi_gian_ket_thuc'])) : '' ?>">
+                                <input type="datetime-local" name="end_time" value="<?= !empty($edit_event['end_time']) ? date('Y-m-d\TH:i', strtotime($edit_event['end_time'])) : '' ?>">
                             </div>
                             <div class="form-group">
                                 <label>Hạn đăng ký</label>
-                                <input type="datetime-local" name="han_dang_ky" value="<?= !empty($edit_event['han_dang_ky']) ? date('Y-m-d\TH:i', strtotime($edit_event['han_dang_ky'])) : '' ?>">
+                                <input type="datetime-local" name="reg_deadline" value="<?= !empty($edit_event['reg_deadline']) ? date('Y-m-d\TH:i', strtotime($edit_event['reg_deadline'])) : '' ?>">
                             </div>
                             <div class="form-group">
                                 <label>Số lượng tối đa</label>
-                                <input type="number" name="so_luong_toi_da" min="0" value="<?= htmlspecialchars($edit_event['so_luong_toi_da'] ?? '') ?>">
+                                <input type="number" name="max_participants" min="0" value="<?= htmlspecialchars($edit_event['max_participants'] ?? '') ?>">
                             </div>
                             <div class="form-group">
                                 <label>Trạng thái</label>
-                                <select name="trang_thai">
-                                    <option value="sap_dien_ra" <?= $edit_event['trang_thai'] === 'sap_dien_ra' ? 'selected' : '' ?>>Sắp diễn ra</option>
-                                    <option value="dang_dien_ra" <?= $edit_event['trang_thai'] === 'dang_dien_ra' ? 'selected' : '' ?>>Đang diễn ra</option>
-                                    <option value="da_ket_thuc" <?= $edit_event['trang_thai'] === 'da_ket_thuc' ? 'selected' : '' ?>>Đã kết thúc</option>
-                                    <option value="da_huy" <?= $edit_event['trang_thai'] === 'da_huy' ? 'selected' : '' ?>>Đã hủy</option>
+                                <select name="status">
+                                    <option value="upcoming" <?= $edit_event['status'] === 'upcoming' ? 'selected' : '' ?>>Sắp diễn ra</option>
+                                    <option value="ongoing" <?= $edit_event['status'] === 'ongoing' ? 'selected' : '' ?>>Đang diễn ra</option>
+                                    <option value="completed" <?= $edit_event['status'] === 'completed' ? 'selected' : '' ?>>Đã kết thúc</option>
+                                    <option value="cancelled" <?= $edit_event['status'] === 'cancelled' ? 'selected' : '' ?>>Đã hủy</option>
                                 </select>
                             </div>
                             <div class="form-group" style="grid-column:1/-1;">
                                 <label>Mô tả</label>
-                                <textarea name="mo_ta" rows="3"><?= htmlspecialchars($edit_event['mo_ta'] ?? '') ?></textarea>
+                                <textarea name="short_desc" rows="3"><?= htmlspecialchars($edit_event['short_desc'] ?? '') ?></textarea>
                             </div>
                             <div class="form-actions">
                                 <button type="submit" class="btn-primary">Lưu thay đổi</button>
@@ -412,22 +411,22 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                             <?php foreach ($events as $event): ?>
                             <tr>
                                 <td><?= $event['id'] ?></td>
-                                <td><?= htmlspecialchars($event['ten_su_kien']) ?></td>
-                                <td><?= htmlspecialchars($event['ten_clb'] ?? 'N/A') ?></td>
-                                <td><?= !empty($event['thoi_gian_bat_dau']) ? date('d/m/Y H:i', strtotime($event['thoi_gian_bat_dau'])) : 'Chưa có' ?></td>
+                                <td><?= htmlspecialchars($event['name']) ?></td>
+                                <td><?= htmlspecialchars($event['club_name'] ?? 'N/A') ?></td>
+                                <td><?= !empty($event['start_time']) ? date('d/m/Y H:i', strtotime($event['start_time'])) : 'Chưa có' ?></td>
                                 <td>
                                     <?php
-                                        $status = $event['trang_thai'];
+                                        $status = $event['status'];
                                         $badgeClass = 'badge-info';
-                                        if ($status === 'da_ket_thuc') $badgeClass = 'badge-success';
-                                        elseif ($status === 'da_huy') $badgeClass = 'badge-danger';
-                                        elseif ($status === 'dang_dien_ra') $badgeClass = 'badge-primary';
+                                        if ($status === 'completed') $badgeClass = 'badge-success';
+                                        elseif ($status === 'cancelled') $badgeClass = 'badge-danger';
+                                        elseif ($status === 'ongoing') $badgeClass = 'badge-primary';
                                     ?>
                                     <span class="badge <?= $badgeClass ?>">
-                                        <?= htmlspecialchars($status) ?>
+                                        <?= $status === 'upcoming' ? 'Sắp diễn ra' : ($status === 'ongoing' ? 'Đang diễn ra' : ($status === 'completed' ? 'Đã kết thúc' : 'Đã hủy')) ?>
                                     </span>
                                 </td>
-                                <td><?= htmlspecialchars($event['dia_diem'] ?? '') ?></td>
+                                <td><?= htmlspecialchars($event['location'] ?? '') ?></td>
                                 <td><?= date('d/m/Y', strtotime($event['created_at'])) ?></td>
                                 <td>
                                     <div class="action-buttons">

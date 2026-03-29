@@ -20,24 +20,24 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 // Nhận dữ liệu
 $event_id = (int)$_POST['event_id'];
-$ten_su_kien = trim($_POST['ten_su_kien'] ?? '');
-$mo_ta = trim($_POST['mo_ta'] ?? '');
-$noi_dung_chi_tiet = trim($_POST['noi_dung_chi_tiet'] ?? '');
-$dia_diem = trim($_POST['dia_diem'] ?? '');
-$tg_bat_dau = $_POST['tg_bat_dau'] ?? '';
-$tg_ket_thuc = $_POST['tg_ket_thuc'] ?? '';
-$so_luong = (int)($_POST['so_luong'] ?? 0);
-$han_dang_ky = $_POST['han_dang_ky'] ?? '';
-$trang_thai = $_POST['trang_thai'] ?? 'sap_dien_ra';
+$name = trim($_POST['name'] ?? '');
+$short_desc = trim($_POST['short_desc'] ?? '');
+$full_desc = trim($_POST['full_desc'] ?? '');
+$location = trim($_POST['location'] ?? '');
+$start_time = $_POST['start_time'] ?? '';
+$end_time = $_POST['end_time'] ?? '';
+$max_participants = (int)($_POST['max_participants'] ?? 0);
+$reg_deadline = $_POST['reg_deadline'] ?? '';
+$status = $_POST['status'] ?? 'upcoming';
 
 // Validate dữ liệu bắt buộc
 $errors = [];
-if (empty($ten_su_kien)) $errors[] = "Tên sự kiện không được để trống";
-if (empty($mo_ta)) $errors[] = "Mô tả không được để trống";
-if (empty($noi_dung_chi_tiet)) $errors[] = "Nội dung chi tiết không được để trống";
-if (empty($dia_diem)) $errors[] = "Địa điểm không được để trống";
-if (empty($tg_bat_dau) || empty($tg_ket_thuc)) $errors[] = "Vui lòng chọn đầy đủ thời gian";
-if ($so_luong < 1) $errors[] = "Số lượng tối đa phải ≥ 1";
+if (empty($name)) $errors[] = "Tên sự kiện không được để trống";
+if (empty($short_desc)) $errors[] = "Mô tả không được để trống";
+if (empty($full_desc)) $errors[] = "Nội dung chi tiết không được để trống";
+if (empty($location)) $errors[] = "Địa điểm không được để trống";
+if (empty($start_time) || empty($end_time)) $errors[] = "Vui lòng chọn đầy đủ thời gian";
+if ($max_participants < 1) $errors[] = "Số lượng tối đa phải ≥ 1";
 
 if (!empty($errors)) {
     $_SESSION['error'] = "• " . implode("<br>• ", $errors);
@@ -45,23 +45,23 @@ if (!empty($errors)) {
     exit;
 }
 
-// Format datetime locally to avoid clashing with shared helpers
+// Format datetime locally
 function format_datetime_local($dt) {
     return str_replace("T", " ", $dt) . ":00";
 }
 
-$tg_bat_dau = format_datetime_local($tg_bat_dau);
-$tg_ket_thuc = format_datetime_local($tg_ket_thuc);
-$han_dang_ky = $han_dang_ky ? format_datetime_local($han_dang_ky) : null;
+$start_time = format_datetime_local($start_time);
+$end_time = format_datetime_local($end_time);
+$reg_deadline = $reg_deadline ? format_datetime_local($reg_deadline) : null;
 
 // Kiểm tra logic thời gian
-if (strtotime($tg_ket_thuc) <= strtotime($tg_bat_dau)) {
+if (strtotime($end_time) <= strtotime($start_time)) {
     $_SESSION['error'] = "Thời gian kết thúc phải sau thời gian bắt đầu";
     header("Location: edit_sk.php?id=$event_id");
     exit;
 }
 
-if ($han_dang_ky && strtotime($han_dang_ky) >= strtotime($tg_bat_dau)) {
+if ($reg_deadline && strtotime($reg_deadline) >= strtotime($start_time)) {
     $_SESSION['error'] = "Hạn đăng ký phải trước thời gian bắt đầu sự kiện";
     header("Location: edit_sk.php?id=$event_id");
     exit;
@@ -81,17 +81,18 @@ if (!$event_info) {
 }
 
 $club_id = $event_info['club_id'];
-// Kiểm tra quyền chỉnh sửa (người tạo hoặc quản lý CLB)
 $user_id = $_SESSION['user_id'];
-$check_role_sql = "SELECT vai_tro FROM club_members WHERE club_id = ? AND user_id = ?";
+
+// Kiểm tra quyền chỉnh sửa (người tạo hoặc quản lý CLB)
+$check_role_sql = "SELECT role FROM members WHERE club_id = ? AND user_id = ? AND status = 'active'";
 $role_stmt = $conn->prepare($check_role_sql);
 $role_stmt->bind_param("ii", $club_id, $user_id);
 $role_stmt->execute();
 $role_result = $role_stmt->get_result();
-$user_role = $role_result->num_rows > 0 ? $role_result->fetch_assoc()['vai_tro'] : '';
+$user_role = $role_result->num_rows > 0 ? $role_result->fetch_assoc()['role'] : '';
 $role_stmt->close();
 
-$can_edit = ($event_info['created_by'] == $user_id) || in_array($user_role, ['Đội trưởng', 'Đội phó']);
+$can_edit = ($event_info['created_by'] == $user_id) || in_array($user_role, ['leader', 'vice_leader']);
 if (!$can_edit) {
     $_SESSION['error'] = "Bạn không có quyền chỉnh sửa sự kiện này";
     header("Location: list_su_kien.php?id=" . $club_id);
@@ -99,10 +100,10 @@ if (!$can_edit) {
 }
 
 // Xử lý upload ảnh mới
-$anh_bia = null;
-if (isset($_FILES['anh_bia_moi']) && $_FILES['anh_bia_moi']['error'] === UPLOAD_ERR_OK) {
+$cover = null;
+if (isset($_FILES['cover_new']) && $_FILES['cover_new']['error'] === UPLOAD_ERR_OK) {
     $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-    $ext = strtolower(pathinfo($_FILES['anh_bia_moi']['name'], PATHINFO_EXTENSION));
+    $ext = strtolower(pathinfo($_FILES['cover_new']['name'], PATHINFO_EXTENSION));
     
     if (!in_array($ext, $allowed)) {
         $_SESSION['error'] = "Chỉ chấp nhận file: jpg, jpeg, png, gif, webp";
@@ -110,7 +111,7 @@ if (isset($_FILES['anh_bia_moi']) && $_FILES['anh_bia_moi']['error'] === UPLOAD_
         exit;
     }
     
-    if ($_FILES['anh_bia_moi']['size'] > 5 * 1024 * 1024) {
+    if ($_FILES['cover_new']['size'] > 5 * 1024 * 1024) {
         $_SESSION['error'] = "Ảnh bìa không được quá 5MB!";
         header("Location: edit_sk.php?id=$event_id");
         exit;
@@ -119,26 +120,62 @@ if (isset($_FILES['anh_bia_moi']) && $_FILES['anh_bia_moi']['error'] === UPLOAD_
     $upload_dir = __DIR__ . "/anh_bia_sk/";
     if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
     
-    $file_name = "anhbia_" . time() . "_" . rand(1000, 9999) . "." . $ext;
+    $file_name = "cover_" . time() . "_" . rand(1000, 9999) . "." . $ext;
     $target_path = "anh_bia_sk/" . $file_name;
     $full_path = $upload_dir . $file_name;
     
-    if (move_uploaded_file($_FILES['anh_bia_moi']['tmp_name'], $full_path)) {
-        $anh_bia = $target_path;
+    if (move_uploaded_file($_FILES['cover_new']['tmp_name'], $full_path)) {
+        $cover = $target_path;
         
-        // Xóa ảnh cũ nếu có
-        $old_image_sql = "SELECT anh_bia FROM events WHERE id = ?";
-        $old_image_stmt = $conn->prepare($old_image_sql);
-        $old_image_stmt->bind_param("i", $event_id);
-        $old_image_stmt->execute();
-        $old_image_result = $old_image_stmt->get_result();
-        if ($old_image_result->num_rows > 0) {
-            $old_image = $old_image_result->fetch_assoc()['anh_bia'];
-            if ($old_image && file_exists(__DIR__ . '/' . $old_image)) {
-                @unlink(__DIR__ . '/' . $old_image);
+        // Lấy ảnh cũ và xóa
+        $old_cover_sql = "SELECT cover_id FROM events WHERE id = ?";
+        $old_cover_stmt = $conn->prepare($old_cover_sql);
+        $old_cover_stmt->bind_param("i", $event_id);
+        $old_cover_stmt->execute();
+        $old_cover_result = $old_cover_stmt->get_result();
+        if ($old_cover_result->num_rows > 0) {
+            $old_cover_id = $old_cover_result->fetch_assoc()['cover_id'];
+            if ($old_cover_id) {
+                // Lấy path từ media để xóa file
+                $get_path_sql = "SELECT path FROM media WHERE id = ?";
+                $get_path_stmt = $conn->prepare($get_path_sql);
+                $get_path_stmt->bind_param("i", $old_cover_id);
+                $get_path_stmt->execute();
+                $path_result = $get_path_stmt->get_result();
+                if ($path_result->num_rows > 0) {
+                    $old_path = $path_result->fetch_assoc()['path'];
+                    if ($old_path && file_exists(__DIR__ . '/' . $old_path)) {
+                        @unlink(__DIR__ . '/' . $old_path);
+                    }
+                }
+                $get_path_stmt->close();
+                // Xóa record trong media
+                $delete_media = $conn->prepare("DELETE FROM media WHERE id = ?");
+                $delete_media->bind_param("i", $old_cover_id);
+                $delete_media->execute();
+                $delete_media->close();
             }
         }
-        $old_image_stmt->close();
+        $old_cover_stmt->close();
+        
+        // Lưu ảnh mới vào media
+        $relative_path = $target_path;
+        $stmt_media = $conn->prepare("INSERT INTO media (path, uploader_id) VALUES (?, ?)");
+        $stmt_media->bind_param("si", $relative_path, $user_id);
+        if ($stmt_media->execute()) {
+            $cover_id = $conn->insert_id;
+            $stmt_media->close();
+            
+            // Cập nhật cover_id vào events
+            $update_cover_sql = "UPDATE events SET cover_id = ? WHERE id = ?";
+            $update_cover_stmt = $conn->prepare($update_cover_sql);
+            $update_cover_stmt->bind_param("ii", $cover_id, $event_id);
+            $update_cover_stmt->execute();
+            $update_cover_stmt->close();
+        } else {
+            $stmt_media->close();
+            @unlink($full_path);
+        }
     } else {
         $_SESSION['error'] = "Lỗi upload ảnh!";
         header("Location: edit_sk.php?id=$event_id");
@@ -147,38 +184,33 @@ if (isset($_FILES['anh_bia_moi']) && $_FILES['anh_bia_moi']['error'] === UPLOAD_
 }
 
 // Cập nhật database
-$success = false;
-if ($anh_bia) {
-    // Cập nhật cả ảnh mới
-    $sql = "UPDATE events SET 
-                ten_su_kien = ?, mo_ta = ?, noi_dung_chi_tiet = ?, dia_diem = ?,
-                thoi_gian_bat_dau = ?, thoi_gian_ket_thuc = ?, so_luong_toi_da = ?,
-                han_dang_ky = ?, trang_thai = ?, anh_bia = ?
-            WHERE id = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssssssisssi", 
-        $ten_su_kien, $mo_ta, $noi_dung_chi_tiet, $dia_diem,
-        $tg_bat_dau, $tg_ket_thuc, $so_luong, $han_dang_ky, 
-        $trang_thai, $anh_bia, $event_id
-    );
-    $success = $stmt->execute();
-    $stmt->close();
-} else {
-    // Không cập nhật ảnh
-    $sql = "UPDATE events SET 
-                ten_su_kien = ?, mo_ta = ?, noi_dung_chi_tiet = ?, dia_diem = ?,
-                thoi_gian_bat_dau = ?, thoi_gian_ket_thuc = ?, so_luong_toi_da = ?,
-                han_dang_ky = ?, trang_thai = ?
-            WHERE id = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssssssissi", 
-        $ten_su_kien, $mo_ta, $noi_dung_chi_tiet, $dia_diem,
-        $tg_bat_dau, $tg_ket_thuc, $so_luong, $han_dang_ky, 
-        $trang_thai, $event_id
-    );
-    $success = $stmt->execute();
-    $stmt->close();
-}
+$sql = "UPDATE events SET 
+            name = ?, 
+            short_desc = ?, 
+            full_desc = ?, 
+            location = ?,
+            start_time = ?, 
+            end_time = ?, 
+            max_participants = ?,
+            reg_deadline = ?, 
+            status = ?
+        WHERE id = ?";
+
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("ssssssissi", 
+    $name, 
+    $short_desc, 
+    $full_desc, 
+    $location,
+    $start_time, 
+    $end_time, 
+    $max_participants, 
+    $reg_deadline, 
+    $status, 
+    $event_id
+);
+$success = $stmt->execute();
+$stmt->close();
 
 if ($success) {
     $_SESSION['success'] = "✅ Đã chỉnh sửa sự kiện thành công!";

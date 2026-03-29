@@ -25,8 +25,8 @@ $stats['clubs'] = $result->fetch_assoc()['total'];
 $result = $conn->query("SELECT COUNT(*) as total FROM events");
 $stats['events'] = $result->fetch_assoc()['total'];
 
-// Tổng số members
-$result = $conn->query("SELECT COUNT(*) as total FROM club_members WHERE trang_thai = 'dang_hoat_dong'");
+// Tổng số members (thành viên đang hoạt động)
+$result = $conn->query("SELECT COUNT(*) as total FROM members WHERE status = 'active'");
 $stats['members'] = $result->fetch_assoc()['total'];
 
 // Tổng số notifications chưa đọc
@@ -34,24 +34,24 @@ $result = $conn->query("SELECT COUNT(*) as total FROM notifications WHERE is_rea
 $stats['unread_notifications'] = $result->fetch_assoc()['total'];
 
 // Tổng số liên hệ mới
-$result = $conn->query("SELECT COUNT(*) as total FROM lienhe WHERE status = 'new'");
+$result = $conn->query("SELECT COUNT(*) as total FROM inquiries WHERE status = 'new'");
 $stats['new_contacts'] = $result->fetch_assoc()['total'];
 
 // Users mới nhất
-$recent_users = $conn->query("SELECT id, ho_ten, username, email, created_at FROM users ORDER BY created_at DESC LIMIT 5")->fetch_all(MYSQLI_ASSOC);
+$recent_users = $conn->query("SELECT id, full_name, username, email, created_at FROM users ORDER BY created_at DESC LIMIT 5")->fetch_all(MYSQLI_ASSOC);
 
 // Clubs mới nhất
-$recent_clubs = $conn->query("SELECT c.id, c.ten_clb, c.linh_vuc, u.ho_ten as doi_truong, c.created_at 
+$recent_clubs = $conn->query("SELECT c.id, c.name, c.category, u.full_name as leader_name, c.created_at 
                                FROM clubs c 
-                               LEFT JOIN users u ON c.chu_nhiem_id = u.id 
+                               LEFT JOIN users u ON c.leader_id = u.id 
                                ORDER BY c.created_at DESC LIMIT 5")->fetch_all(MYSQLI_ASSOC);
 
 // Events sắp diễn ra
-$upcoming_events = $conn->query("SELECT e.id, e.ten_su_kien, c.ten_clb, e.thoi_gian_bat_dau 
+$upcoming_events = $conn->query("SELECT e.id, e.name, c.name as club_name, e.start_time 
                                  FROM events e 
                                  JOIN clubs c ON e.club_id = c.id 
-                                 WHERE e.trang_thai = 'sap_dien_ra' 
-                                 ORDER BY e.thoi_gian_bat_dau ASC 
+                                 WHERE e.status = 'upcoming' 
+                                 ORDER BY e.start_time ASC 
                                  LIMIT 5")->fetch_all(MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
@@ -183,7 +183,7 @@ $upcoming_events = $conn->query("SELECT e.id, e.ten_su_kien, c.ten_clb, e.thoi_g
                             <tbody>
                                 <?php foreach ($recent_users as $user): ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($user['ho_ten'] ?? 'Chưa cập nhật') ?></td>
+                                    <td><?= htmlspecialchars($user['full_name'] ?? 'Chưa cập nhật') ?></td>
                                     <td><?= htmlspecialchars($user['username']) ?></td>
                                     <td><?= htmlspecialchars($user['email'] ?? 'Chưa có') ?></td>
                                     <td><?= date('d/m/Y', strtotime($user['created_at'])) ?></td>
@@ -212,9 +212,9 @@ $upcoming_events = $conn->query("SELECT e.id, e.ten_su_kien, c.ten_clb, e.thoi_g
                             <tbody>
                                 <?php foreach ($recent_clubs as $club): ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($club['ten_clb']) ?></td>
-                                    <td><?= htmlspecialchars($club['linh_vuc']) ?></td>
-                                    <td><?= htmlspecialchars($club['doi_truong'] ?? 'Chưa có') ?></td>
+                                    <td><?= htmlspecialchars($club['name']) ?></td>
+                                    <td><?= htmlspecialchars($club['category']) ?></td>
+                                    <td><?= htmlspecialchars($club['leader_name'] ?? 'Chưa có') ?></td>
                                     <td><?= date('d/m/Y', strtotime($club['created_at'])) ?></td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -240,9 +240,9 @@ $upcoming_events = $conn->query("SELECT e.id, e.ten_su_kien, c.ten_clb, e.thoi_g
                             <tbody>
                                 <?php foreach ($upcoming_events as $event): ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($event['ten_su_kien']) ?></td>
-                                    <td><?= htmlspecialchars($event['ten_clb']) ?></td>
-                                    <td><?= date('d/m/Y H:i', strtotime($event['thoi_gian_bat_dau'])) ?></td>
+                                    <td><?= htmlspecialchars($event['name']) ?></td>
+                                    <td><?= htmlspecialchars($event['club_name']) ?></td>
+                                    <td><?= date('d/m/Y H:i', strtotime($event['start_time'])) ?></td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>

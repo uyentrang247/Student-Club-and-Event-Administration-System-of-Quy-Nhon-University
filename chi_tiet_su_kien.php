@@ -13,15 +13,15 @@ if ($event_id <= 0) {
     die("ID sự kiện không hợp lệ");
 }
 
-// Lấy thông tin sự kiện
-$sql = "SELECT e.*, c.ten_clb, c.linh_vuc, c.id as club_id, 
-               logo.file_path AS logo_path,
-               anh_bia.file_path AS anh_bia_path
+// Lấy thông tin sự kiện với cấu trúc database mới
+$sql = "SELECT e.*, c.name as club_name, c.category, c.id as club_id, 
+               logo.path AS logo_path,
+               cover.path AS cover_path
         FROM events e 
         LEFT JOIN clubs c ON e.club_id = c.id 
-        LEFT JOIN club_pages cp ON cp.club_id = c.id
-        LEFT JOIN media_library logo ON cp.logo_id = logo.id
-        LEFT JOIN media_library anh_bia ON e.anh_bia_id = anh_bia.id
+        LEFT JOIN pages cp ON cp.club_id = c.id
+        LEFT JOIN media logo ON cp.logo_id = logo.id
+        LEFT JOIN media cover ON e.cover_id = cover.id
         WHERE e.id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $event_id);
@@ -36,30 +36,30 @@ $event = $result->fetch_assoc();
 
 // Cập nhật trạng thái theo thời gian hiện tại (tránh hiển thị sai)
 $now = date('Y-m-d H:i:s');
-$start = $event['thoi_gian_bat_dau'] ?? null;
-$end   = $event['thoi_gian_ket_thuc'] ?? null;
-$calculated_status = $event['trang_thai'];
+$start = $event['start_time'] ?? null;
+$end   = $event['end_time'] ?? null;
+$calculated_status = $event['status'];
 
 if ($start && $end && $start <= $now && $now <= $end) {
-    $calculated_status = 'dang_dien_ra';
+    $calculated_status = 'ongoing';
 } elseif ($start && $start > $now) {
-    $calculated_status = 'sap_dien_ra';
+    $calculated_status = 'upcoming';
 } elseif ($end && $end < $now) {
-    $calculated_status = 'da_ket_thuc';
+    $calculated_status = 'completed';
 }
 
 // Nếu trạng thái tính toán khác DB thì cập nhật và dùng giá trị mới cho view
-if ($calculated_status !== $event['trang_thai']) {
-    $update_stmt = $conn->prepare("UPDATE events SET trang_thai = ? WHERE id = ?");
+if ($calculated_status !== $event['status']) {
+    $update_stmt = $conn->prepare("UPDATE events SET status = ? WHERE id = ?");
     if ($update_stmt) {
         $update_stmt->bind_param("si", $calculated_status, $event_id);
         $update_stmt->execute();
         $update_stmt->close();
     }
-    $event['trang_thai'] = $calculated_status;
+    $event['status'] = $calculated_status;
 }
 
-// Đếm số lượng đã đăng ký (tất cả đều đã được duyệt)
+// Đếm số lượng đã đăng ký
 $registered_count = 0;
 $sql_count = "SELECT COUNT(*) as total FROM event_registrations WHERE event_id = ?";
 $count_stmt = $conn->prepare($sql_count);
@@ -72,31 +72,34 @@ if ($count_result->num_rows > 0) {
 }
 $count_stmt->close();
 
-// Xử lý ảnh bìa - lấy từ media_library
+// Xử lý ảnh bìa
 $event_image = 'https://via.placeholder.com/1200x500?text=Event+Image';
-if (!empty($event['anh_bia_path'])) {
-    $anh_bia_path = $event['anh_bia_path'];
-    // Kiểm tra file có tồn tại không
-    if (file_exists($anh_bia_path) || file_exists(__DIR__ . '/' . $anh_bia_path)) {
-        $event_image = htmlspecialchars($anh_bia_path);
+if (!empty($event['cover_path'])) {
+    $cover_path = $event['cover_path'];
+    if (file_exists($cover_path) || file_exists(__DIR__ . '/' . $cover_path)) {
+        $event_image = htmlspecialchars($cover_path);
     }
 }
 
 // Xử lý trạng thái
 $status_class = '';
 $status_text = '';
-switch($event['trang_thai']) {
-    case 'sap_dien_ra':
+switch($event['status']) {
+    case 'upcoming':
         $status_class = 'upcoming';
         $status_text = 'Sắp diễn ra';
         break;
-    case 'dang_dien_ra':
+    case 'ongoing':
         $status_class = 'ongoing';
         $status_text = 'Đang diễn ra';
         break;
-    case 'da_ket_thuc':
+    case 'completed':
         $status_class = 'ended';
         $status_text = 'Đã kết thúc';
+        break;
+    case 'cancelled':
+        $status_class = 'cancelled';
+        $status_text = 'Đã hủy';
         break;
     default:
         $status_class = 'upcoming';
@@ -104,9 +107,8 @@ switch($event['trang_thai']) {
 }
 
 // Format ngày tháng
-$event_date = date('d', strtotime($event['thoi_gian_bat_dau']));
-$event_month = 'Tháng ' . date('m', strtotime($event['thoi_gian_bat_dau']));
-$event_year = date('Y', strtotime($event['thoi_gian_bat_dau']));
+$event_date = date('d', strtotime($event['start_time']));
+$event_month = 'Tháng ' . date('m', strtotime($event['start_time']));
 
 // Định dạng thời gian hiển thị thống nhất
 function format_datetime_view($value) {
@@ -131,7 +133,7 @@ if (isset($_SESSION['user_id'])) {
 <div class="event-detail-container">
     <!-- HEADER IMAGE -->
     <div class="event-header">
-        <img src="<?php echo $event_image; ?>" alt="<?php echo htmlspecialchars($event['ten_su_kien']); ?>"
+        <img src="<?php echo $event_image; ?>" alt="<?php echo htmlspecialchars($event['name']); ?>"
              onerror="this.src='https://via.placeholder.com/1200x500?text=Event+Image'">
         <div class="event-header-overlay">
             <div class="event-date-large">
@@ -148,7 +150,7 @@ if (isset($_SESSION['user_id'])) {
             <span class="badge <?php echo $status_class; ?>"><?php echo $status_text; ?></span>
             
             <!-- TITLE -->
-            <h1 class="event-title"><?php echo htmlspecialchars($event['ten_su_kien']); ?></h1>
+            <h1 class="event-title"><?php echo htmlspecialchars($event['name']); ?></h1>
             
             <!-- META INFO -->
             <div class="event-meta-info">
@@ -156,7 +158,7 @@ if (isset($_SESSION['user_id'])) {
                     <i class="icon">🏛️</i>
                     <div>
                         <strong>Câu lạc bộ</strong>
-                        <p><?php echo htmlspecialchars($event['ten_clb'] ?? 'Chưa có CLB'); ?></p>
+                        <p><?php echo htmlspecialchars($event['club_name'] ?? 'Chưa có CLB'); ?></p>
                     </div>
                 </div>
                 
@@ -164,7 +166,7 @@ if (isset($_SESSION['user_id'])) {
                     <i class="icon">📍</i>
                     <div>
                         <strong>Địa điểm</strong>
-                        <p><?php echo htmlspecialchars($event['dia_diem'] ?: 'Chưa cập nhật'); ?></p>
+                        <p><?php echo htmlspecialchars($event['location'] ?: 'Chưa cập nhật'); ?></p>
                     </div>
                 </div>
                 
@@ -175,12 +177,12 @@ if (isset($_SESSION['user_id'])) {
                         <div class="time-range">
                             <p>
                                 <span class="label">Bắt đầu:</span>
-                                <span class="value"><?php echo format_datetime_view($event['thoi_gian_bat_dau']); ?></span>
+                                <span class="value"><?php echo format_datetime_view($event['start_time']); ?></span>
                             </p>
-                            <?php if ($event['thoi_gian_ket_thuc']): ?>
+                            <?php if ($event['end_time']): ?>
                             <p>
                                 <span class="label">Kết thúc:</span>
-                                <span class="value"><?php echo format_datetime_view($event['thoi_gian_ket_thuc']); ?></span>
+                                <span class="value"><?php echo format_datetime_view($event['end_time']); ?></span>
                             </p>
                             <?php endif; ?>
                         </div>
@@ -193,17 +195,17 @@ if (isset($_SESSION['user_id'])) {
                         <strong>Số lượng</strong>
                         <p class="participant-info">
                             <span class="registered-count"><?php echo $registered_count; ?></span> / 
-                            <span class="max-count"><?php echo $event['so_luong_toi_da']; ?></span> người đã đăng ký
+                            <span class="max-count"><?php echo $event['max_participants']; ?></span> người đã đăng ký
                         </p>
                     </div>
                 </div>
                 
-                <?php if ($event['han_dang_ky']): ?>
+                <?php if ($event['reg_deadline']): ?>
                 <div class="meta-item">
                     <i class="icon">⏰</i>
                     <div>
                         <strong>Hạn đăng ký</strong>
-                        <p class="value"><?php echo format_datetime_view($event['han_dang_ky']); ?></p>
+                        <p class="value"><?php echo format_datetime_view($event['reg_deadline']); ?></p>
                     </div>
                 </div>
                 <?php endif; ?>
@@ -212,20 +214,20 @@ if (isset($_SESSION['user_id'])) {
             <!-- DESCRIPTION -->
             <div class="event-section">
                 <h2>📝 Giới thiệu / Mô tả</h2>
-                <p><?php echo nl2br(htmlspecialchars($event['mo_ta'])); ?></p>
+                <p><?php echo nl2br(htmlspecialchars($event['short_desc'])); ?></p>
             </div>
 
             <!-- DETAILED CONTENT -->
-            <?php if (!empty($event['noi_dung_chi_tiet'])): ?>
+            <?php if (!empty($event['full_desc'])): ?>
             <div class="event-section">
                 <h2>📌 Nội dung chi tiết</h2>
-                <p><?php echo nl2br(htmlspecialchars($event['noi_dung_chi_tiet'])); ?></p>
+                <p><?php echo nl2br(htmlspecialchars($event['full_desc'])); ?></p>
             </div>
             <?php endif; ?>
 
             <!-- ACTION BUTTONS -->
             <div class="event-actions">
-                <?php if ($event['trang_thai'] === 'da_ket_thuc'): ?>
+                <?php if ($event['status'] === 'completed' || $event['status'] === 'cancelled'): ?>
                     <button class="btn-ended" disabled>
                         Sự kiện đã kết thúc
                     </button>
@@ -258,12 +260,12 @@ if (isset($_SESSION['user_id'])) {
                     $club_logo = $event['logo_path'] ?? '';
                     if (!empty($club_logo)): ?>
                     <img src="<?php echo htmlspecialchars($club_logo); ?>" 
-                         alt="<?php echo htmlspecialchars($event['ten_clb']); ?>"
+                         alt="<?php echo htmlspecialchars($event['club_name']); ?>"
                          class="club-logo">
                     <?php endif; ?>
-                    <h4><?php echo htmlspecialchars($event['ten_clb'] ?? 'Chưa có CLB'); ?></h4>
-                    <?php if (!empty($event['linh_vuc'])): ?>
-                    <p class="club-category"><?php echo htmlspecialchars($event['linh_vuc']); ?></p>
+                    <h4><?php echo htmlspecialchars($event['club_name'] ?? 'Chưa có CLB'); ?></h4>
+                    <?php if (!empty($event['category'])): ?>
+                    <p class="club-category"><?php echo htmlspecialchars($event['category']); ?></p>
                     <?php endif; ?>
                     <a href="club-detail.php?id=<?php echo $event['club_id']; ?>" class="btn-view-club">
                         Xem CLB
@@ -281,7 +283,7 @@ if (isset($_SESSION['user_id'])) {
                     </div>
                     <div class="info-row">
                         <span class="label">Đã đăng ký:</span>
-                        <span class="value"><strong class="registered-count-sidebar"><?php echo $registered_count; ?></strong> / <?php echo $event['so_luong_toi_da']; ?> người</span>
+                        <span class="value"><strong class="registered-count-sidebar"><?php echo $registered_count; ?></strong> / <?php echo $event['max_participants']; ?> người</span>
                     </div>
                     <div class="info-row">
                         <span class="label">Ngày tạo:</span>
@@ -328,7 +330,6 @@ function getToastContainer() {
         c = document.createElement('div');
         c.id = 'toast-container';
         c.style.position = 'fixed';
-        // Đẩy xuống dưới header để không bị khuất bởi thanh người dùng
         c.style.top = '88px';
         c.style.right = '16px';
         c.style.zIndex = '12000';
@@ -445,7 +446,7 @@ function shareOnFacebook() {
 
 function shareOnTwitter() {
     const url = window.location.href;
-    const text = '<?php echo htmlspecialchars($event['ten_su_kien']); ?>';
+    const text = '<?php echo htmlspecialchars($event['name']); ?>';
     window.open('https://twitter.com/intent/tweet?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text), '_blank');
 }
 

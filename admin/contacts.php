@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Thiếu thông tin liên hệ.';
         $message_type = 'error';
     } elseif ($action === 'delete') {
-        $stmt = $conn->prepare("DELETE FROM lienhe WHERE id = ?");
+        $stmt = $conn->prepare("DELETE FROM inquiries WHERE id = ?");
         $stmt->bind_param("i", $id);
         if ($stmt->execute()) {
             $_SESSION['flash_contacts'] = ['message' => 'Đã xóa liên hệ.', 'type' => 'success'];
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = 'Trạng thái không hợp lệ.';
             $message_type = 'error';
         } else {
-            $stmt = $conn->prepare("UPDATE lienhe SET status = ? WHERE id = ?");
+            $stmt = $conn->prepare("UPDATE inquiries SET status = ? WHERE id = ?");
             $stmt->bind_param("si", $new_status, $id);
             if ($stmt->execute()) {
                 $label = $new_status === 'read' ? 'đã đọc' : ($new_status === 'replied' ? 'đã trả lời' : 'mới');
@@ -70,12 +70,12 @@ if (!empty($status_filter)) {
     $where_clause = "WHERE status = '" . $conn->real_escape_string($status_filter) . "'";
 }
 
-$count_sql = "SELECT COUNT(*) as total FROM lienhe $where_clause";
+$count_sql = "SELECT COUNT(*) as total FROM inquiries $where_clause";
 $result = $conn->query($count_sql);
 $total_contacts = $result->fetch_assoc()['total'];
 $total_pages = ceil($total_contacts / $items_per_page);
 
-$sql = "SELECT * FROM lienhe $where_clause ORDER BY created_at DESC LIMIT $items_per_page OFFSET $offset";
+$sql = "SELECT * FROM inquiries $where_clause ORDER BY created_at DESC LIMIT $items_per_page OFFSET $offset";
 $contacts = $conn->query($sql)->fetch_all(MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>

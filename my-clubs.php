@@ -16,8 +16,8 @@ require_once('assets/database/connect.php');
 
 $user_id = $_SESSION['user_id'];
 
-// Lấy CLB mà user đã tạo (là đội trưởng)
-$stmt_created = $conn->prepare("SELECT id, ten_clb, logo_url, linh_vuc, mo_ta FROM clubs WHERE chu_nhiem_id = ?");
+// Lấy CLB mà user đã tạo (là leader)
+$stmt_created = $conn->prepare("SELECT id, name, category, description FROM clubs WHERE leader_id = ?");
 $stmt_created->bind_param("i", $user_id);
 $stmt_created->execute();
 $created_clubs = $stmt_created->get_result();
@@ -25,7 +25,7 @@ $created_count = $created_clubs->num_rows;
 
 // Lấy tất cả CLB mà user tham gia (bao gồm cả CLB đã tạo)
 // Logic: User tạo CLB = tự động là thành viên
-$stmt_joined = $conn->prepare("SELECT id, ten_clb, logo_url, linh_vuc, mo_ta, chu_nhiem_id FROM clubs WHERE chu_nhiem_id = ?");
+$stmt_joined = $conn->prepare("SELECT id, name, category, description, leader_id FROM clubs WHERE leader_id = ?");
 $stmt_joined->bind_param("i", $user_id);
 $stmt_joined->execute();
 $joined_clubs = $stmt_joined->get_result();
@@ -61,22 +61,40 @@ $active_tab = $_GET['tab'] ?? 'joined'; // Mặc định hiển thị tab "Đã 
                 <?php 
                 $joined_clubs->data_seek(0); // Reset pointer
                 while($club = $joined_clubs->fetch_assoc()): 
-                    $is_owner = ($club['chu_nhiem_id'] == $user_id);
+                    $is_owner = ($club['leader_id'] == $user_id);
                 ?>
                     <div class="club-card">
                         <div class="club-card-header">
-                            <img src="<?= htmlspecialchars($club['logo_url']) ?>" 
-                                 alt="<?= htmlspecialchars($club['ten_clb']) ?>" 
+                            <?php
+                            // Lấy logo từ pages và media
+                            $logo_sql = "SELECT m.path FROM pages p LEFT JOIN media m ON p.logo_id = m.id WHERE p.club_id = ?";
+                            $logo_stmt = $conn->prepare($logo_sql);
+                            $logo_stmt->bind_param("i", $club['id']);
+                            $logo_stmt->execute();
+                            $logo_result = $logo_stmt->get_result();
+                            $logo_url = '';
+                            if ($logo_result->num_rows > 0) {
+                                $logo_data = $logo_result->fetch_assoc();
+                                $logo_url = $logo_data['path'] ?? '';
+                            }
+                            $logo_stmt->close();
+                            
+                            if (empty($logo_url)) {
+                                $logo_url = 'assets/img/default-club.png';
+                            }
+                            ?>
+                            <img src="<?= htmlspecialchars($logo_url) ?>" 
+                                 alt="<?= htmlspecialchars($club['name']) ?>" 
                                  class="club-logo"
                                  onerror="this.src='assets/img/default-club.png'">
-                            <span class="club-badge"><?= htmlspecialchars($club['linh_vuc']) ?></span>
+                            <span class="club-badge"><?= htmlspecialchars($club['category']) ?></span>
                             <?php if ($is_owner): ?>
                                 <span class="owner-badge">👑 Đội trưởng</span>
                             <?php endif; ?>
                         </div>
                         <div class="club-card-body">
-                            <h3 class="club-name"><?= htmlspecialchars($club['ten_clb']) ?></h3>
-                            <p class="club-desc"><?= htmlspecialchars(substr($club['mo_ta'] ?? 'Chưa có mô tả', 0, 80)) ?><?= strlen($club['mo_ta'] ?? '') > 80 ? '...' : '' ?></p>
+                            <h3 class="club-name"><?= htmlspecialchars($club['name']) ?></h3>
+                            <p class="club-desc"><?= htmlspecialchars(substr($club['description'] ?? 'Chưa có mô tả', 0, 80)) ?><?= strlen($club['description'] ?? '') > 80 ? '...' : '' ?></p>
                             <div class="club-actions">
                                 <a href="club-detail.php?id=<?= $club['id'] ?>" class="btn-view">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -118,18 +136,34 @@ $active_tab = $_GET['tab'] ?? 'joined'; // Mặc định hiển thị tab "Đã 
                 <?php 
                 $created_clubs->data_seek(0); // Reset pointer
                 while($club = $created_clubs->fetch_assoc()): 
+                    // Lấy logo từ pages và media
+                    $logo_sql = "SELECT m.path FROM pages p LEFT JOIN media m ON p.logo_id = m.id WHERE p.club_id = ?";
+                    $logo_stmt = $conn->prepare($logo_sql);
+                    $logo_stmt->bind_param("i", $club['id']);
+                    $logo_stmt->execute();
+                    $logo_result = $logo_stmt->get_result();
+                    $logo_url = '';
+                    if ($logo_result->num_rows > 0) {
+                        $logo_data = $logo_result->fetch_assoc();
+                        $logo_url = $logo_data['path'] ?? '';
+                    }
+                    $logo_stmt->close();
+                    
+                    if (empty($logo_url)) {
+                        $logo_url = 'assets/img/default-club.png';
+                    }
                 ?>
                     <div class="club-card">
                         <div class="club-card-header">
-                            <img src="<?= htmlspecialchars($club['logo_url']) ?>" 
-                                 alt="<?= htmlspecialchars($club['ten_clb']) ?>" 
+                            <img src="<?= htmlspecialchars($logo_url) ?>" 
+                                 alt="<?= htmlspecialchars($club['name']) ?>" 
                                  class="club-logo"
                                  onerror="this.src='assets/img/default-club.png'">
-                            <span class="club-badge"><?= htmlspecialchars($club['linh_vuc']) ?></span>
+                            <span class="club-badge"><?= htmlspecialchars($club['category']) ?></span>
                         </div>
                         <div class="club-card-body">
-                            <h3 class="club-name"><?= htmlspecialchars($club['ten_clb']) ?></h3>
-                            <p class="club-desc"><?= htmlspecialchars(substr($club['mo_ta'] ?? 'Chưa có mô tả', 0, 80)) ?><?= strlen($club['mo_ta'] ?? '') > 80 ? '...' : '' ?></p>
+                            <h3 class="club-name"><?= htmlspecialchars($club['name']) ?></h3>
+                            <p class="club-desc"><?= htmlspecialchars(substr($club['description'] ?? 'Chưa có mô tả', 0, 80)) ?><?= strlen($club['description'] ?? '') > 80 ? '...' : '' ?></p>
                             <div class="club-actions">
                                 <a href="club-detail.php?id=<?= $club['id'] ?>" class="btn-view">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

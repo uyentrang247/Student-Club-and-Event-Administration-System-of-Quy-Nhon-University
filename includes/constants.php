@@ -10,33 +10,41 @@ if (defined('CONSTANTS_LOADED')) {
 }
 define('CONSTANTS_LOADED', true);
 
-// User Roles
+// User Roles (Database mới: leader, vice_leader, head, member)
 class UserRole {
-    const DOI_TRUONG = 'doi_truong';
-    const DOI_PHO = 'doi_pho';
-    const TRUONG_BAN = 'truong_ban';
-    const THANH_VIEN = 'thanh_vien';
+    const LEADER = 'leader';           // Đội trưởng
+    const VICE_LEADER = 'vice_leader'; // Đội phó
+    const HEAD = 'head';               // Trưởng ban
+    const MEMBER = 'member';           // Thành viên
     
-    // Backward compatibility
-    const CHU_NHIEM = 'doi_truong';
-    const PHO_CHU_NHIEM = 'doi_pho';
+    // Backward compatibility (giữ lại để code cũ vẫn chạy)
+    const DOI_TRUONG = 'leader';
+    const DOI_PHO = 'vice_leader';
+    const TRUONG_BAN = 'head';
+    const THANH_VIEN = 'member';
+    const CHU_NHIEM = 'leader';
+    const PHO_CHU_NHIEM = 'vice_leader';
     
     public static function getAll() {
         return [
-            self::DOI_TRUONG,
-            self::DOI_PHO,
-            self::TRUONG_BAN,
-            self::THANH_VIEN
+            self::LEADER,
+            self::VICE_LEADER,
+            self::HEAD,
+            self::MEMBER
         ];
     }
     
     public static function getLabel($role) {
         $labels = [
-            self::DOI_TRUONG => 'Đội trưởng',
-            self::DOI_PHO => 'Đội phó',
-            self::TRUONG_BAN => 'Trưởng ban',
-            self::THANH_VIEN => 'Thành viên',
+            self::LEADER => 'Đội trưởng',
+            self::VICE_LEADER => 'Đội phó',
+            self::HEAD => 'Trưởng ban',
+            self::MEMBER => 'Thành viên',
             // Backward compatibility
+            'doi_truong' => 'Đội trưởng',
+            'doi_pho' => 'Đội phó',
+            'truong_ban' => 'Trưởng ban',
+            'thanh_vien' => 'Thành viên',
             'chu_nhiem' => 'Đội trưởng',
             'pho_chu_nhiem' => 'Đội phó'
         ];
@@ -44,78 +52,101 @@ class UserRole {
     }
     
     public static function isAdmin($role) {
-        return in_array($role, [self::DOI_TRUONG, self::DOI_PHO, self::TRUONG_BAN, 'chu_nhiem', 'pho_chu_nhiem']);
+        return in_array($role, [self::LEADER, self::VICE_LEADER, self::HEAD]);
     }
 }
 
-// Member Status
+// Member Status (Database mới: active, pending, inactive)
 class MemberStatus {
-    const DANG_HOAT_DONG = 'dang_hoat_dong';
-    const CHO_DUYET = 'cho_duyet';
-    const DA_TU_CHOI = 'da_tu_choi';
-    const NGUNG_HOAT_DONG = 'ngung_hoat_dong';
+    const ACTIVE = 'active';     // Đang hoạt động
+    const PENDING = 'pending';   // Chờ duyệt
+    const INACTIVE = 'inactive'; // Đã nghỉ / không hoạt động
+    
+    // Backward compatibility (giữ lại để code cũ vẫn chạy)
+    const DANG_HOAT_DONG = 'active';
+    const CHO_DUYET = 'pending';
+    const DA_TU_CHOI = 'rejected';
+    const NGUNG_HOAT_DONG = 'inactive';
     
     public static function getLabel($status) {
         $labels = [
-            self::DANG_HOAT_DONG => 'Đang hoạt động',
-            self::CHO_DUYET => 'Chờ duyệt',
-            self::DA_TU_CHOI => 'Đã từ chối',
-            self::NGUNG_HOAT_DONG => 'Ngừng hoạt động'
+            self::ACTIVE => 'Đang hoạt động',
+            self::PENDING => 'Chờ duyệt',
+            self::INACTIVE => 'Ngừng hoạt động',
+            // Backward compatibility
+            'dang_hoat_dong' => 'Đang hoạt động',
+            'cho_duyet' => 'Chờ duyệt',
+            'da_nghi' => 'Ngừng hoạt động',
+            'da_tu_choi' => 'Đã từ chối',
+            'rejected' => 'Đã từ chối'
         ];
         return $labels[$status] ?? 'Không xác định';
     }
 }
 
-// Event Status
+// Event Status (Database mới: upcoming, ongoing, completed, cancelled)
 class EventStatus {
-    const SAP_DIEN_RA = 'sap_dien_ra';
-    const DANG_DIEN_RA = 'dang_dien_ra';
-    const DA_KET_THUC = 'da_ket_thuc';
-    const DA_HUY = 'da_huy';
+    const UPCOMING = 'upcoming';   // Sắp diễn ra
+    const ONGOING = 'ongoing';     // Đang diễn ra
+    const COMPLETED = 'completed'; // Đã kết thúc
+    const CANCELLED = 'cancelled'; // Đã hủy
+    
+    // Backward compatibility (giữ lại để code cũ vẫn chạy)
+    const SAP_DIEN_RA = 'upcoming';
+    const DANG_DIEN_RA = 'ongoing';
+    const DA_KET_THUC = 'completed';
+    const DA_HUY = 'cancelled';
     
     public static function getLabel($status) {
         $labels = [
-            self::SAP_DIEN_RA => 'Sắp diễn ra',
-            self::DANG_DIEN_RA => 'Đang diễn ra',
-            self::DA_KET_THUC => 'Đã kết thúc',
-            self::DA_HUY => 'Đã hủy'
+            self::UPCOMING => 'Sắp diễn ra',
+            self::ONGOING => 'Đang diễn ra',
+            self::COMPLETED => 'Đã kết thúc',
+            self::CANCELLED => 'Đã hủy',
+            // Backward compatibility
+            'sap_dien_ra' => 'Sắp diễn ra',
+            'dang_dien_ra' => 'Đang diễn ra',
+            'da_ket_thuc' => 'Đã kết thúc',
+            'da_huy' => 'Đã hủy'
         ];
         return $labels[$status] ?? 'Không xác định';
     }
 }
 
-// Club Categories
+// Club Categories (giữ nguyên)
 class ClubCategory {
-    const HOC_THUAT = 'Học thuật';
-    const THE_THAO = 'Thể thao';
-    const NGHE_THUAT = 'Nghệ thuật';
-    const TINH_NGUYEN = 'Tình nguyện';
-    const KY_NANG = 'Kỹ năng';
-    const KHAC = 'Khác';
+    const ACADEMIC = 'Academic';
+    const SPORT = 'Sport';
+    const ART = 'Art';
+    const VOLUNTEER = 'Volunteer';
+    const SKILL = 'Skill';
+    const LANGUAGE = 'Language';
+    const OTHER = 'Other';
     
     public static function getAll() {
         return [
-            self::HOC_THUAT,
-            self::THE_THAO,
-            self::NGHE_THUAT,
-            self::TINH_NGUYEN,
-            self::KY_NANG,
-            self::KHAC
+            self::ACADEMIC,
+            self::SPORT,
+            self::ART,
+            self::VOLUNTEER,
+            self::SKILL,
+            self::LANGUAGE,
+            self::OTHER
         ];
     }
 }
 
-// Notification Types
+// Notification Types (giữ nguyên)
 class NotificationType {
     const CLUB_JOIN = 'club_join';
-    const CLUB_INVITE = 'club_invite';
-    const EVENT_INVITE = 'event_invite';
+    const CLUB_INVITE = 'invite';
+    const EVENT = 'event';
     const EVENT_REMINDER = 'event_reminder';
     const ROLE_CHANGE = 'role_change';
     const SYSTEM = 'system';
 }
 
-// HTTP Status Codes
+// HTTP Status Codes (giữ nguyên)
 class HttpStatus {
     const OK = 200;
     const CREATED = 201;

@@ -12,16 +12,16 @@ $error_student_id = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     require_once __DIR__ . '/includes/functions.php';
-    $ho_ten = sanitize_input(trim($_POST['ho_ten'] ?? ''));
+    $full_name = sanitize_input(trim($_POST['full_name'] ?? ''));
     $email = sanitize_input(trim($_POST['email'] ?? ''));
-    $so_dien_thoai = sanitize_input($_POST['so_dien_thoai'] ?? '');
+    $phone = sanitize_input($_POST['phone'] ?? '');
     $student_id = sanitize_input($_POST['student_id'] ?? '');
-    $class = sanitize_input($_POST['class'] ?? '');
+    $class_name = sanitize_input($_POST['class_name'] ?? '');
     $faculty = sanitize_input($_POST['faculty'] ?? '');
-    $gender = sanitize_input($_POST['gender'] ?? 'khac');
+    $gender = sanitize_input($_POST['gender'] ?? 'other');
 
-    if (empty($ho_ten)) {
-        $error_ho_ten = "Họ tên không được để trống!";
+    if (empty($full_name)) {
+        $error_full_name = "Họ tên không được để trống!";
     }
     if (empty($email)) {
         $error_email = "Email không được để trống!";
@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     // Validate phone if provided
     $phone_pattern = '/^0\d{9}$/';
-    if (!empty($so_dien_thoai) && !preg_match($phone_pattern, $so_dien_thoai)) {
+    if (!empty($phone) && !preg_match($phone_pattern, $phone)) {
         $error_phone = "Số điện thoại phải gồm 10 số và bắt đầu bằng 0.";
     }
 
@@ -40,10 +40,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error_student_id = "Mã sinh viên chỉ được chứa số.";
     }
 
-    if (empty($error_ho_ten) && empty($error_email) && empty($error_phone) && empty($error_student_id)) {
+    if (empty($error_full_name) && empty($error_email) && empty($error_phone) && empty($error_student_id)) {
         $result = completeUserProfile(
-            $_SESSION['temp_username'], $ho_ten, $email, $so_dien_thoai,
-            $student_id, $class, $faculty, $gender
+            $_SESSION['temp_username'], $full_name, $email, $phone,
+            $student_id, $class_name, $faculty, $gender
         );
 
         if ($result === true) {
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $success = "Hoàn thiện hồ sơ thành công! Chào mừng bạn đến với LeaderClub";
             echo '<script>setTimeout(() => { window.location.href = "trangchu.php"; }, 2500);</script>';
         } else {
-            $error_ho_ten = $result;
+            $error_full_name = $result;
         }
 }
 }
@@ -83,9 +83,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <div class="form-row">
                         <div class="form-group">
                             <label>Họ và tên *</label>
-                            <input type="text" name="ho_ten" value="<?php echo htmlspecialchars($_POST['ho_ten'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-                            <?php if (!empty($error_ho_ten)): ?>
-                                <span class="error-text"><?php echo htmlspecialchars($error_ho_ten, ENT_QUOTES, 'UTF-8'); ?></span>
+                            <input type="text" name="full_name" value="<?php echo htmlspecialchars($_POST['full_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                            <?php if (!empty($error_full_name)): ?>
+                                <span class="error-text"><?php echo htmlspecialchars($error_full_name, ENT_QUOTES, 'UTF-8'); ?></span>
                             <?php endif; ?>
                         </div>
                         <div class="form-group">
@@ -111,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         </div>
                         <div class="form-group">
                             <label>Lớp</label>
-                            <input type="text" name="class" value="<?php echo htmlspecialchars($_POST['class'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                            <input type="text" name="class_name" value="<?php echo htmlspecialchars($_POST['class_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
                     </div>
 
@@ -123,12 +123,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <div class="form-group">
                             <label>Số điện thoại</label>
                             <input type="tel"
-                                   name="so_dien_thoai"
-                                   id="so_dien_thoai"
+                                   name="phone"
+                                   id="phone"
                                    pattern="0\d{9}"
                                    inputmode="tel"
                                    placeholder="Nhập 10 số, bắt đầu bằng 0"
-                                   value="<?php echo htmlspecialchars($_POST['so_dien_thoai'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                                   value="<?php echo htmlspecialchars($_POST['phone'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                             <?php if (!empty($error_phone)): ?>
                                 <span class="error-text"><?php echo htmlspecialchars($error_phone, ENT_QUOTES, 'UTF-8'); ?></span>
                             <?php endif; ?>
@@ -140,16 +140,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <label>Giới tính</label>
                         <div class="gender-group">
                             <div class="gender-option">
-                                <input type="radio" name="gender" value="nam" id="nam" checked>
-                                <label for="nam">Nam</label>
+                                <input type="radio" name="gender" value="male" id="male" checked>
+                                <label for="male">Nam</label>
                             </div>
                             <div class="gender-option">
-                                <input type="radio" name="gender" value="nu" id="nu">
-                                <label for="nu">Nữ</label>
+                                <input type="radio" name="gender" value="female" id="female">
+                                <label for="female">Nữ</label>
                             </div>
                             <div class="gender-option">
-                                <input type="radio" name="gender" value="khac" id="khac">
-                                <label for="khac">Khác</label>
+                                <input type="radio" name="gender" value="other" id="other">
+                                <label for="other">Khác</label>
                             </div>
                         </div>
                     </div>
@@ -164,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const phoneInput = document.getElementById('so_dien_thoai');
+    const phoneInput = document.getElementById('phone');
     const phoneHelper = document.getElementById('phone-helper');
     const emailInput = document.querySelector('input[name="email"]');
     const emailHelper = document.getElementById('email-helper');

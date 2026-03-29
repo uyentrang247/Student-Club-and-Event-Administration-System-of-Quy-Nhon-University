@@ -19,11 +19,11 @@ if (strlen($keyword) < 2 || !$club_id) {
 
 $keyword_like = '%' . $keyword . '%';
 
-$sql = "SELECT id, ho_ten, email 
+$sql = "SELECT id, full_name, email 
         FROM users 
-        WHERE (ho_ten LIKE ? OR email LIKE ?)
+        WHERE (full_name LIKE ? OR email LIKE ?)
         AND id NOT IN (
-            SELECT user_id FROM club_members WHERE club_id = ?
+            SELECT user_id FROM members WHERE club_id = ?
         )
         LIMIT 20";
 
@@ -44,3 +44,4 @@ if ($stmt = $conn->prepare($sql)) {
 }
 
 // Don't close connection - it's managed globally
+?>

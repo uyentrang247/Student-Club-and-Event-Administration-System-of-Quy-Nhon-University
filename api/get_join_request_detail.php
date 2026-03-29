@@ -16,30 +16,30 @@ if (!$member_id || !$club_id) {
     json_response(['success' => false, 'message' => 'Thiếu thông tin'], HttpStatus::BAD_REQUEST);
 }
 
-// Lấy thông tin chi tiết từ club_members, users, và join_requests
+// Lấy thông tin chi tiết từ members, users, và join_requests
 $sql = "SELECT 
-            cm.id AS club_member_id,
-            cm.user_id,
-            cm.club_id,
-            cm.phong_ban_id,
-            cm.trang_thai AS member_status,
-            cm.vai_tro,
-            u.ho_ten,
+            m.id AS member_id,
+            m.user_id,
+            m.club_id,
+            m.department_id,
+            m.status AS member_status,
+            m.role,
+            u.full_name,
             u.username,
             u.email,
             u.avatar,
-            u.so_dien_thoai AS user_phone,
-            pb.ten_phong_ban,
-            jr.so_dien_thoai AS request_phone,
-            jr.loi_nhan,
+            u.phone AS user_phone,
+            d.name AS department_name,
+            jr.phone AS request_phone,
+            jr.message AS request_message,
             jr.requested_at,
-            c.ten_clb
-        FROM club_members cm
-        INNER JOIN users u ON cm.user_id = u.id
-        LEFT JOIN phong_ban pb ON cm.phong_ban_id = pb.id AND pb.club_id = cm.club_id
-        LEFT JOIN join_requests jr ON jr.club_id = cm.club_id AND jr.user_id = cm.user_id
-        INNER JOIN clubs c ON cm.club_id = c.id
-        WHERE cm.id = ? AND cm.club_id = ?";
+            c.name AS club_name
+        FROM members m
+        INNER JOIN users u ON m.user_id = u.id
+        LEFT JOIN departments d ON m.department_id = d.id AND d.club_id = m.club_id
+        LEFT JOIN join_requests jr ON jr.club_id = m.club_id AND jr.user_id = m.user_id
+        INNER JOIN clubs c ON m.club_id = c.id
+        WHERE m.id = ? AND m.club_id = ?";
 
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("ii", $member_id, $club_id);
@@ -47,20 +47,20 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    // Nếu không tìm thấy trong club_members, có thể đã bị từ chối (xóa)
+    // Nếu không tìm thấy trong members, có thể đã bị từ chối (xóa)
     // Lấy thông tin từ join_requests dựa vào club_id (lấy request gần nhất)
     $fallback_sql = "SELECT 
                         jr.club_id,
                         jr.user_id,
-                        jr.so_dien_thoai AS request_phone,
-                        jr.loi_nhan,
+                        jr.phone AS request_phone,
+                        jr.message AS request_message,
                         jr.requested_at,
-                        u.ho_ten,
+                        u.full_name,
                         u.username,
                         u.email,
                         u.avatar,
-                        u.so_dien_thoai AS user_phone,
-                        c.ten_clb
+                        u.phone AS user_phone,
+                        c.name AS club_name
                     FROM join_requests jr
                     INNER JOIN users u ON jr.user_id = u.id
                     INNER JOIN clubs c ON jr.club_id = c.id
@@ -75,9 +75,10 @@ if ($result->num_rows === 0) {
     if ($fallback_result->num_rows > 0) {
         $data = $fallback_result->fetch_assoc();
         $data['member_status'] = 'rejected'; // Đánh dấu là đã từ chối
-        $data['phong_ban_id'] = null;
-        $data['ten_phong_ban'] = null;
-        $data['vai_tro'] = null;
+        $data['department_id'] = null;
+        $data['department_name'] = null;
+        $data['role'] = null;
+        $data['member_id'] = null;
         $fallback_stmt->close();
     } else {
         $fallback_stmt->close();
@@ -88,8 +89,8 @@ if ($result->num_rows === 0) {
 }
 $stmt->close();
 
-// Lấy danh sách phòng ban của CLB
-$dept_sql = "SELECT id, ten_phong_ban FROM phong_ban WHERE club_id = ? ORDER BY ten_phong_ban ASC";
+// Lấy danh sách phòng ban của CLB từ bảng departments
+$dept_sql = "SELECT id, name FROM departments WHERE club_id = ? ORDER BY name ASC";
 $dept_stmt = $conn->prepare($dept_sql);
 $dept_stmt->bind_param("i", $club_id);
 $dept_stmt->execute();
@@ -97,9 +98,29 @@ $dept_result = $dept_stmt->get_result();
 $departments = $dept_result->fetch_all(MYSQLI_ASSOC);
 $dept_stmt->close();
 
+// Chuyển đổi tên trường cho dễ dùng trong frontend
+$response_data = [
+    'member_id' => $data['member_id'] ?? null,
+    'user_id' => $data['user_id'],
+    'club_id' => $data['club_id'],
+    'member_status' => $data['member_status'],
+    'role' => $data['role'] ?? null,
+    'full_name' => $data['full_name'],
+    'username' => $data['username'],
+    'email' => $data['email'],
+    'avatar' => $data['avatar'],
+    'user_phone' => $data['user_phone'],
+    'department_id' => $data['department_id'] ?? null,
+    'department_name' => $data['department_name'],
+    'request_phone' => $data['request_phone'],
+    'message' => $data['request_message'] ?? '',
+    'requested_at' => $data['requested_at'],
+    'club_name' => $data['club_name']
+];
+
 json_response([
     'success' => true,
-    'request' => $data,
+    'request' => $response_data,
     'departments' => $departments
 ], HttpStatus::OK);
 ?>

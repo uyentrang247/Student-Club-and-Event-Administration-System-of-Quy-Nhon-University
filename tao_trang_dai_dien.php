@@ -41,11 +41,19 @@ if (!$club) {
     exit;
 }
 
-// Lấy thông tin trang đại diện nếu đã có
+// Lấy thông tin trang đại diện nếu đã có từ bảng pages
 $club_page = null;
-$table_check = $conn->query("SHOW TABLES LIKE 'club_pages'");
+$table_check = $conn->query("SHOW TABLES LIKE 'pages'");
 if ($table_check && $table_check->num_rows > 0) {
-    $sql = "SELECT * FROM club_pages WHERE club_id = ?";
+    $sql = "SELECT p.*, 
+                   banner.path AS banner_url, 
+                   logo.path AS logo_url,
+                   cc.facebook, cc.instagram, cc.twitter, cc.website
+            FROM pages p
+            LEFT JOIN media banner ON p.banner_id = banner.id
+            LEFT JOIN media logo ON p.logo_id = logo.id
+            LEFT JOIN contacts cc ON cc.club_id = p.club_id
+            WHERE p.club_id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $club_id);
     $stmt->execute();
@@ -55,8 +63,8 @@ if ($table_check && $table_check->num_rows > 0) {
     }
 }
 
-// Đếm số thành viên
-$sql = "SELECT COUNT(*) as total FROM club_members WHERE club_id = ?";
+// Đếm số thành viên từ bảng members
+$sql = "SELECT COUNT(*) as total FROM members WHERE club_id = ? AND status = 'active'";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $club_id);
 $stmt->execute();
@@ -109,9 +117,9 @@ load_header();
                 </div>
 
                 <div class="form-group full-width">
-                    <label for="description">Mô tả chi tiết</label>
-                    <textarea id="description" name="description" rows="5" 
-                              placeholder="Giới thiệu chi tiết về câu lạc bộ..."><?= htmlspecialchars($club_page['description'] ?? $club['mo_ta'] ?? '') ?></textarea>
+                    <label for="about">Mô tả chi tiết</label>
+                    <textarea id="about" name="about" rows="5" 
+                              placeholder="Giới thiệu chi tiết về câu lạc bộ..."><?= htmlspecialchars($club_page['about'] ?? $club['description'] ?? '') ?></textarea>
                     <small>Mô tả đầy đủ về CLB, hoạt động và mục tiêu</small>
                 </div>
             </div>
@@ -316,7 +324,7 @@ document.querySelector('.appearance-form').addEventListener('submit', function(e
     console.log('Club ID:', formData.get('club_id'));
     console.log('Club ID from input:', clubIdInput?.value);
     console.log('Slogan:', formData.get('slogan'));
-    console.log('Description:', formData.get('description'));
+    console.log('About:', formData.get('about'));
     console.log('Primary Color:', formData.get('primary_color'));
     console.log('is_public:', formData.get('is_public'));
     console.log('Facebook:', formData.get('facebook'));

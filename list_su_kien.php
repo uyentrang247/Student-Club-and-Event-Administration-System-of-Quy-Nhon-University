@@ -23,77 +23,69 @@ load_header();
 
 global $conn;
 
-// Lấy tên câu lạc bộ và chủ nhiệm để phân quyền
-$sql_club = "SELECT ten_clb, chu_nhiem_id FROM clubs WHERE id = ?";
+// Lấy tên câu lạc bộ và leader để phân quyền
+$sql_club = "SELECT name, leader_id FROM clubs WHERE id = ?";
 $stmt = $conn->prepare($sql_club);
 $stmt->bind_param("i", $club_id);
 $stmt->execute();
 $club = $stmt->get_result()->fetch_assoc();
-$ten_clb = $club['ten_clb'] ?? 'Câu lạc bộ';
-$is_owner = isset($club['chu_nhiem_id']) && ((int)$club['chu_nhiem_id'] === (int)$_SESSION['user_id']);
+$ten_clb = $club['name'] ?? 'Câu lạc bộ';
+$is_owner = isset($club['leader_id']) && ((int)$club['leader_id'] === (int)$_SESSION['user_id']);
 $stmt->close();
 
-// Kiểm tra vai trò của người dùng trong CLB (đội phó cũng được quyền chỉnh sửa)
+// Kiểm tra vai trò của người dùng trong CLB (leader, vice_leader, head được quyền chỉnh sửa)
 $user_role = 'guest';
-$role_sql = "SELECT vai_tro FROM club_members WHERE club_id = ? AND user_id = ? AND trang_thai = 'dang_hoat_dong' LIMIT 1";
+$role_sql = "SELECT role FROM members WHERE club_id = ? AND user_id = ? AND status = 'active' LIMIT 1";
 $role_stmt = $conn->prepare($role_sql);
 if ($role_stmt) {
     $role_stmt->bind_param("ii", $club_id, $_SESSION['user_id']);
     $role_stmt->execute();
     $role_res = $role_stmt->get_result();
     if ($role_res && $role_res->num_rows > 0) {
-        $user_role = strtolower($role_res->fetch_assoc()['vai_tro'] ?? 'guest');
+        $user_role = strtolower($role_res->fetch_assoc()['role'] ?? 'guest');
     }
     $role_stmt->close();
 }
 
-// Chuẩn hóa vai trò để so sánh (xử lý cả tiếng Việt có dấu)
+// Chuẩn hóa vai trò để so sánh
 function normalize_role($role) {
     $role = strtolower(trim($role));
     $map = [
-        'đội phó' => 'doi_pho',
-        'doi pho' => 'doi_pho',
-        'đội trưởng' => 'doi_truong',
-        'doi truong' => 'doi_truong',
-        'trưởng ban' => 'truong_ban',
-        'truong ban' => 'truong_ban',
-        'phó chủ nhiệm' => 'pho_chu_nhiem',
-        'pho chu nhiem' => 'pho_chu_nhiem',
-        'chủ nhiệm' => 'chu_nhiem',
-        'chu nhiem' => 'chu_nhiem'
+        'vice_leader' => 'vice_leader',
+        'leader' => 'leader',
+        'head' => 'head',
+        'member' => 'member'
     ];
     return $map[$role] ?? $role;
 }
 
 $role_key = normalize_role($user_role);
-$can_manage = $is_owner || in_array($role_key, ['doi_pho', 'chu_nhiem', 'pho_chu_nhiem', 'truong_ban', 'doi_truong']);
+$can_manage = $is_owner || in_array($role_key, ['leader', 'vice_leader', 'head']);
 
 // Tự động cập nhật trạng thái sự kiện dựa trên thời gian hiện tại
-// CHỈ tự động cập nhật cho "sap_dien_ra" và "dang_dien_ra"
-// KHÔNG động vào "da_ket_thuc" và "da_huy" (để tôn trọng thay đổi thủ công của người dùng)
 $now = date('Y-m-d H:i:s');
 $update_status_sql = "UPDATE events 
-                      SET trang_thai = CASE 
+                      SET status = CASE 
                           -- Sắp diễn ra: chưa bắt đầu
-                          WHEN thoi_gian_bat_dau > ? THEN 'sap_dien_ra'
+                          WHEN start_time > ? THEN 'upcoming'
                           -- Đang diễn ra: đã bắt đầu nhưng chưa kết thúc
-                          WHEN thoi_gian_bat_dau <= ? AND thoi_gian_ket_thuc >= ? THEN 'dang_dien_ra'
-                          -- Đã kết thúc: đã kết thúc (chỉ tự động nếu đang là sap_dien_ra hoặc dang_dien_ra)
-                          WHEN thoi_gian_ket_thuc < ? AND trang_thai IN ('sap_dien_ra', 'dang_dien_ra') THEN 'da_ket_thuc'
-                          ELSE trang_thai
+                          WHEN start_time <= ? AND end_time >= ? THEN 'ongoing'
+                          -- Đã kết thúc: đã kết thúc (chỉ tự động nếu đang là upcoming hoặc ongoing)
+                          WHEN end_time < ? AND status IN ('upcoming', 'ongoing') THEN 'completed'
+                          ELSE status
                       END
-                      WHERE club_id = ? AND trang_thai NOT IN ('da_huy', 'da_ket_thuc')";
+                      WHERE club_id = ? AND status NOT IN ('cancelled', 'completed')";
 $update_stmt = $conn->prepare($update_status_sql);
 $update_stmt->bind_param("ssssi", $now, $now, $now, $now, $club_id);
 $update_stmt->execute();
 $update_stmt->close();
 
-// Thống kê (dựa trên trạng thái đã được cập nhật trong database)
+// Thống kê
 $stats_sql = "SELECT 
                 COUNT(*) as total,
-                SUM(CASE WHEN trang_thai = 'da_ket_thuc' THEN 1 ELSE 0 END) as da_ket_thuc,
-                SUM(CASE WHEN trang_thai = 'dang_dien_ra' THEN 1 ELSE 0 END) as dang_dien_ra,
-                SUM(CASE WHEN trang_thai = 'sap_dien_ra' THEN 1 ELSE 0 END) as sap_dien_ra
+                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+                SUM(CASE WHEN status = 'ongoing' THEN 1 ELSE 0 END) as ongoing,
+                SUM(CASE WHEN status = 'upcoming' THEN 1 ELSE 0 END) as upcoming
             FROM events 
             WHERE club_id = ?";
 $stats_stmt = $conn->prepare($stats_sql);
@@ -104,14 +96,14 @@ $stats_stmt->close();
 
 // Danh sách sự kiện
 $sql = "SELECT 
-            e.id, e.ten_su_kien, e.mo_ta, e.dia_diem,
-            e.thoi_gian_bat_dau, e.thoi_gian_ket_thuc,
-            e.so_luong_toi_da, e.han_dang_ky, e.trang_thai,
-            media_library.file_path AS anh_bia_path
+            e.id, e.name, e.short_desc, e.location,
+            e.start_time, e.end_time,
+            e.max_participants, e.reg_deadline, e.status,
+            m.path AS cover_path
         FROM events e
-        LEFT JOIN media_library ON e.anh_bia_id = media_library.id
+        LEFT JOIN media m ON e.cover_id = m.id
         WHERE e.club_id = ? 
-        ORDER BY e.thoi_gian_bat_dau DESC";
+        ORDER BY e.start_time DESC";
 
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $club_id);
@@ -135,7 +127,7 @@ if ($result && $result->num_rows > 0) {
         $count_stmt->close();
         $event_registrations[$event['id']] = $registered_count;
     }
-    $result->data_seek(0); // Reset pointer
+    $result->data_seek(0);
 }
 ?>
 
@@ -170,21 +162,21 @@ if ($result && $result->num_rows > 0) {
         <div class="stat-card upcoming">
             <div class="stat-icon">🕒</div>
             <div class="stat-content">
-                <div class="stat-number"><?= $stats['sap_dien_ra'] ?></div>
+                <div class="stat-number"><?= $stats['upcoming'] ?></div>
                 <div class="stat-label">Sắp diễn ra</div>
             </div>
         </div>
         <div class="stat-card ongoing">
             <div class="stat-icon">🎯</div>
             <div class="stat-content">
-                <div class="stat-number"><?= $stats['dang_dien_ra'] ?></div>
+                <div class="stat-number"><?= $stats['ongoing'] ?></div>
                 <div class="stat-label">Đang diễn ra</div>
             </div>
         </div>
         <div class="stat-card ended">
             <div class="stat-icon">✅</div>
             <div class="stat-content">
-                <div class="stat-number"><?= $stats['da_ket_thuc'] ?></div>
+                <div class="stat-number"><?= $stats['completed'] ?></div>
                 <div class="stat-label">Đã kết thúc</div>
             </div>
         </div>
@@ -196,9 +188,9 @@ if ($result && $result->num_rows > 0) {
             <?php while ($event = $result->fetch_assoc()): ?>
                 <div class="event-card" data-event-id="<?= $event['id'] ?>">
                     <div class="event-image">
-                        <?php if (!empty($event['anh_bia_path'])): ?>
-                            <img src="<?= htmlspecialchars($event['anh_bia_path']) ?>" 
-                                 alt="<?= htmlspecialchars($event['ten_su_kien']) ?>">
+                        <?php if (!empty($event['cover_path'])): ?>
+                            <img src="<?= htmlspecialchars($event['cover_path']) ?>" 
+                                 alt="<?= htmlspecialchars($event['name']) ?>">
                         <?php else: ?>
                             <div class="placeholder-img">
                                 <span>📅</span>
@@ -206,34 +198,30 @@ if ($result && $result->num_rows > 0) {
                         <?php endif; ?>
                         
                         <?php
-                        // Ưu tiên trạng thái trong database (tôn trọng thay đổi thủ công của người dùng)
-                        // Chỉ tự động tính toán nếu trạng thái là "sap_dien_ra" hoặc "dang_dien_ra"
+                        // Xử lý trạng thái
                         $now = time();
-                        $start_time = strtotime($event['thoi_gian_bat_dau']);
-                        $end_time = strtotime($event['thoi_gian_ket_thuc']);
+                        $start_time = strtotime($event['start_time']);
+                        $end_time = strtotime($event['end_time']);
                         
-                        // Nếu trạng thái đã được đặt thủ công là "da_huy" hoặc "da_ket_thuc", giữ nguyên
-                        if ($event['trang_thai'] === 'da_huy' || $event['trang_thai'] === 'da_ket_thuc') {
-                            $actual_status = $event['trang_thai'];
+                        if ($event['status'] === 'cancelled') {
+                            $actual_status = 'cancelled';
+                        } elseif ($event['status'] === 'completed') {
+                            $actual_status = 'completed';
                         } elseif ($start_time > $now) {
-                            // Sắp diễn ra: chưa bắt đầu
-                            $actual_status = 'sap_dien_ra';
+                            $actual_status = 'upcoming';
                         } elseif ($start_time <= $now && $end_time >= $now) {
-                            // Đang diễn ra: đã bắt đầu nhưng chưa kết thúc
-                            $actual_status = 'dang_dien_ra';
+                            $actual_status = 'ongoing';
                         } elseif ($end_time < $now) {
-                            // Đã kết thúc: đã kết thúc (chỉ tự động nếu đang là sap_dien_ra hoặc dang_dien_ra)
-                            $actual_status = 'da_ket_thuc';
+                            $actual_status = 'completed';
                         } else {
-                            // Fallback: dùng trạng thái trong database
-                            $actual_status = $event['trang_thai'];
+                            $actual_status = $event['status'];
                         }
                         
                         $status_map = [
-                            'sap_dien_ra' => ['text' => 'Sắp diễn ra', 'class' => 'upcoming'],
-                            'dang_dien_ra' => ['text' => 'Đang diễn ra', 'class' => 'ongoing'],
-                            'da_ket_thuc' => ['text' => 'Đã kết thúc', 'class' => 'ended'],
-                            'da_huy' => ['text' => 'Đã hủy', 'class' => 'cancelled']
+                            'upcoming' => ['text' => 'Sắp diễn ra', 'class' => 'upcoming'],
+                            'ongoing' => ['text' => 'Đang diễn ra', 'class' => 'ongoing'],
+                            'completed' => ['text' => 'Đã kết thúc', 'class' => 'ended'],
+                            'cancelled' => ['text' => 'Đã hủy', 'class' => 'cancelled']
                         ];
                         $status = $status_map[$actual_status] ?? ['text' => 'Không xác định', 'class' => ''];
                         ?>
@@ -261,26 +249,26 @@ if ($result && $result->num_rows > 0) {
                     </div>
 
                     <div class="event-content">
-                        <h3 class="event-title"><?= htmlspecialchars($event['ten_su_kien']) ?></h3>
+                        <h3 class="event-title"><?= htmlspecialchars($event['name']) ?></h3>
                         
                         <div class="event-details">
                             <div class="detail-item">
                                 <span class="icon">📅</span>
-                                <span><?= date('d/m/Y H:i', strtotime($event['thoi_gian_bat_dau'])) ?></span>
+                                <span><?= date('d/m/Y H:i', strtotime($event['start_time'])) ?></span>
                             </div>
                             <div class="detail-item">
                                 <span class="icon">📍</span>
-                                <span><?= htmlspecialchars($event['dia_diem'] ?: 'Chưa cập nhật') ?></span>
+                                <span><?= htmlspecialchars($event['location'] ?: 'Chưa cập nhật') ?></span>
                             </div>
                             <div class="detail-item">
                                 <span class="icon">👥</span>
-                                <span>Đã đăng ký: <strong><?= $event_registrations[$event['id']] ?? 0 ?></strong> / <?= $event['so_luong_toi_da'] ? $event['so_luong_toi_da'] . ' người' : 'Không giới hạn' ?></span>
+                                <span>Đã đăng ký: <strong><?= $event_registrations[$event['id']] ?? 0 ?></strong> / <?= $event['max_participants'] ? $event['max_participants'] . ' người' : 'Không giới hạn' ?></span>
                             </div>
                         </div>
 
-                        <?php if ($event['mo_ta']): ?>
+                        <?php if ($event['short_desc']): ?>
                             <p class="event-desc">
-                                <?= mb_substr(htmlspecialchars($event['mo_ta']), 0, 100) ?>...
+                                <?= mb_substr(htmlspecialchars($event['short_desc']), 0, 100) ?>...
                             </p>
                         <?php endif; ?>
 
@@ -323,11 +311,11 @@ if ($result && $result->num_rows > 0) {
             
             <div class="form-group">
                 <label>Trạng thái mới:</label>
-                <select id="new_status" name="trang_thai" required>
-                    <option value="sap_dien_ra">🕒 Sắp diễn ra</option>
-                    <option value="dang_dien_ra">🎯 Đang diễn ra</option>
-                    <option value="da_ket_thuc">✅ Đã kết thúc</option>
-                    <option value="da_huy">❌ Đã hủy</option>
+                <select id="new_status" name="status" required>
+                    <option value="upcoming">🕒 Sắp diễn ra</option>
+                    <option value="ongoing">🎯 Đang diễn ra</option>
+                    <option value="completed">✅ Đã kết thúc</option>
+                    <option value="cancelled">❌ Đã hủy</option>
                 </select>
             </div>
             
@@ -362,7 +350,18 @@ document.addEventListener('click', function(e) {
 // Quick edit status
 function quickEditStatus(eventId, currentStatus) {
     document.getElementById('edit_event_id').value = eventId;
-    document.getElementById('new_status').value = currentStatus;
+    // Map current status to new status values
+    const statusMap = {
+        'upcoming': 'upcoming',
+        'ongoing': 'ongoing',
+        'completed': 'completed',
+        'cancelled': 'cancelled',
+        'sap_dien_ra': 'upcoming',
+        'dang_dien_ra': 'ongoing',
+        'da_ket_thuc': 'completed',
+        'da_huy': 'cancelled'
+    };
+    document.getElementById('new_status').value = statusMap[currentStatus] || 'upcoming';
     document.getElementById('statusModal').style.display = 'flex';
 }
 
@@ -386,7 +385,6 @@ function updateStatus(e) {
         body: formData
     })
     .then(response => {
-        // Kiểm tra Content-Type trước khi parse JSON
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             return response.text().then(text => {
@@ -446,3 +444,4 @@ $stmt->close();
 $conn->close();
 load_footer();
 ?>
+

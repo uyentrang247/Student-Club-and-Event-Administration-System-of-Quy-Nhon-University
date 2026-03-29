@@ -23,21 +23,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 
     if ($action === 'create' || $action === 'update') {
-        $ten_clb = trim($_POST['ten_clb'] ?? '');
-        $linh_vuc = trim($_POST['linh_vuc'] ?? '');
-        $mo_ta = trim($_POST['mo_ta'] ?? '');
+        $name = trim($_POST['name'] ?? '');
+        $category = trim($_POST['category'] ?? '');
+        $description = trim($_POST['description'] ?? '');
         $color = trim($_POST['color'] ?? '#667eea');
-        $ngay_thanh_lap = !empty($_POST['ngay_thanh_lap']) ? $_POST['ngay_thanh_lap'] : null;
-        $chu_nhiem_id = !empty($_POST['chu_nhiem_id']) ? (int)$_POST['chu_nhiem_id'] : null;
-        $so_thanh_vien = isset($_POST['so_thanh_vien']) ? max(0, (int)$_POST['so_thanh_vien']) : 0;
+        $founded_date = !empty($_POST['founded_date']) ? $_POST['founded_date'] : null;
+        $leader_id = !empty($_POST['leader_id']) ? (int)$_POST['leader_id'] : null;
+        $total_members = isset($_POST['total_members']) ? max(0, (int)$_POST['total_members']) : 0;
 
-        if ($ten_clb === '' || $linh_vuc === '') {
+        if ($name === '' || $category === '') {
             $message = 'Vui lòng nhập tên CLB và lĩnh vực.';
             $message_type = 'error';
         } else {
             if ($action === 'create') {
-                $stmt = $conn->prepare("INSERT INTO clubs (ten_clb, mo_ta, linh_vuc, so_thanh_vien, color, ngay_thanh_lap, chu_nhiem_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("sssissi", $ten_clb, $mo_ta, $linh_vuc, $so_thanh_vien, $color, $ngay_thanh_lap, $chu_nhiem_id);
+                $stmt = $conn->prepare("INSERT INTO clubs (name, description, category, total_members, color, founded_date, leader_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("sssissi", $name, $description, $category, $total_members, $color, $founded_date, $leader_id);
                 if ($stmt->execute()) {
                     $_SESSION['flash_clubs'] = ['message' => 'Thêm CLB thành công.', 'type' => 'success'];
                     header('Location: clubs.php');
@@ -52,8 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $message = 'Thiếu thông tin CLB.';
                     $message_type = 'error';
                 } else {
-                    $stmt = $conn->prepare("UPDATE clubs SET ten_clb=?, mo_ta=?, linh_vuc=?, so_thanh_vien=?, color=?, ngay_thanh_lap=?, chu_nhiem_id=? WHERE id=?");
-                    $stmt->bind_param("sssissii", $ten_clb, $mo_ta, $linh_vuc, $so_thanh_vien, $color, $ngay_thanh_lap, $chu_nhiem_id, $id);
+                    $stmt = $conn->prepare("UPDATE clubs SET name=?, description=?, category=?, total_members=?, color=?, founded_date=?, leader_id=? WHERE id=?");
+                    $stmt->bind_param("sssissii", $name, $description, $category, $total_members, $color, $founded_date, $leader_id, $id);
                     if ($stmt->execute()) {
                         $_SESSION['flash_clubs'] = ['message' => 'Cập nhật CLB thành công.', 'type' => 'success'];
                         header('Location: clubs.php');
@@ -96,7 +96,7 @@ $params = [];
 $types = '';
 
 if (!empty($search)) {
-    $where_clause = "WHERE c.ten_clb LIKE ? OR c.linh_vuc LIKE ?";
+    $where_clause = "WHERE c.name LIKE ? OR c.category LIKE ?";
     $search_param = '%' . $search . '%';
     $params[] = $search_param;
     $params[] = $search_param;
@@ -116,9 +116,9 @@ if (!empty($params)) {
 }
 $total_pages = ceil($total_clubs / $items_per_page);
 
-$sql = "SELECT c.id, c.ten_clb, c.linh_vuc, c.so_thanh_vien, c.color, c.created_at, u.ho_ten as doi_truong
+$sql = "SELECT c.id, c.name, c.category, c.total_members, c.color, c.created_at, u.full_name as leader_name
         FROM clubs c
-        LEFT JOIN users u ON c.chu_nhiem_id = u.id
+        LEFT JOIN users u ON c.leader_id = u.id
         $where_clause
         ORDER BY c.created_at DESC
         LIMIT ? OFFSET ?";
@@ -137,7 +137,7 @@ $clubs = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
 // Danh sách leader
-$leaders = $conn->query("SELECT id, ho_ten, username FROM users ORDER BY ho_ten ASC")->fetch_all(MYSQLI_ASSOC);
+$leaders = $conn->query("SELECT id, full_name, username FROM users ORDER BY full_name ASC")->fetch_all(MYSQLI_ASSOC);
 
 // CLB đang chỉnh sửa
 $edit_club = null;
@@ -192,26 +192,26 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                             <input type="hidden" name="action" value="create">
                             <div class="form-group">
                                 <label>Tên CLB</label>
-                                <input type="text" name="ten_clb" required>
+                                <input type="text" name="name" required>
                             </div>
                             <div class="form-group">
                                 <label>Lĩnh vực</label>
-                                <input type="text" name="linh_vuc" required>
+                                <input type="text" name="category" required>
                             </div>
                             <div class="form-group">
                                 <label>Số thành viên</label>
-                                <input type="number" name="so_thanh_vien" min="0" value="0">
+                                <input type="number" name="total_members" min="0" value="0">
                             </div>
                             <div class="form-group">
                                 <label>Ngày thành lập</label>
-                                <input type="date" name="ngay_thanh_lap">
+                                <input type="date" name="founded_date">
                             </div>
                             <div class="form-group">
                                 <label>Đội trưởng</label>
-                                <select name="chu_nhiem_id">
+                                <select name="leader_id">
                                     <option value="">-- Chọn --</option>
                                     <?php foreach ($leaders as $leader): ?>
-                                        <option value="<?= $leader['id'] ?>"><?= htmlspecialchars($leader['ho_ten'] ?: $leader['username']) ?></option>
+                                        <option value="<?= $leader['id'] ?>"><?= htmlspecialchars($leader['full_name'] ?: $leader['username']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -221,7 +221,7 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                             </div>
                             <div class="form-group" style="grid-column:1/-1;">
                                 <label>Mô tả</label>
-                                <textarea name="mo_ta" rows="3" placeholder="Giới thiệu ngắn về CLB"></textarea>
+                                <textarea name="description" rows="3" placeholder="Giới thiệu ngắn về CLB"></textarea>
                             </div>
                             <div class="form-actions">
                                 <button type="submit" class="btn-primary">Lưu</button>
@@ -237,7 +237,7 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
             <div class="modal open" id="editClubModal">
                 <div class="modal-dialog">
                     <div class="modal-header">
-                        <h3>Chỉnh sửa: <?= htmlspecialchars($edit_club['ten_clb']) ?></h3>
+                        <h3>Chỉnh sửa: <?= htmlspecialchars($edit_club['name']) ?></h3>
                         <button type="button" class="modal-close" id="btnCloseEditClub">&times;</button>
                     </div>
                     <div class="modal-body">
@@ -246,27 +246,27 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                             <input type="hidden" name="id" value="<?= $edit_club['id'] ?>">
                             <div class="form-group">
                                 <label>Tên CLB</label>
-                                <input type="text" name="ten_clb" value="<?= htmlspecialchars($edit_club['ten_clb']) ?>" required>
+                                <input type="text" name="name" value="<?= htmlspecialchars($edit_club['name']) ?>" required>
                             </div>
                             <div class="form-group">
                                 <label>Lĩnh vực</label>
-                                <input type="text" name="linh_vuc" value="<?= htmlspecialchars($edit_club['linh_vuc']) ?>" required>
+                                <input type="text" name="category" value="<?= htmlspecialchars($edit_club['category']) ?>" required>
                             </div>
                             <div class="form-group">
                                 <label>Số thành viên</label>
-                                <input type="number" name="so_thanh_vien" min="0" value="<?= (int)$edit_club['so_thanh_vien'] ?>">
+                                <input type="number" name="total_members" min="0" value="<?= (int)$edit_club['total_members'] ?>">
                             </div>
                             <div class="form-group">
                                 <label>Ngày thành lập</label>
-                                <input type="date" name="ngay_thanh_lap" value="<?= $edit_club['ngay_thanh_lap'] ?? '' ?>">
+                                <input type="date" name="founded_date" value="<?= $edit_club['founded_date'] ?? '' ?>">
                             </div>
                             <div class="form-group">
                                 <label>Đội trưởng</label>
-                                <select name="chu_nhiem_id">
+                                <select name="leader_id">
                                     <option value="">-- Chọn --</option>
                                     <?php foreach ($leaders as $leader): ?>
-                                        <option value="<?= $leader['id'] ?>" <?= ($edit_club['chu_nhiem_id'] ?? null) == $leader['id'] ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($leader['ho_ten'] ?: $leader['username']) ?>
+                                        <option value="<?= $leader['id'] ?>" <?= ($edit_club['leader_id'] ?? null) == $leader['id'] ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($leader['full_name'] ?: $leader['username']) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -277,7 +277,7 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                             </div>
                             <div class="form-group" style="grid-column:1/-1;">
                                 <label>Mô tả</label>
-                                <textarea name="mo_ta" rows="3" placeholder="Giới thiệu ngắn về CLB"><?= htmlspecialchars($edit_club['mo_ta'] ?? '') ?></textarea>
+                                <textarea name="description" rows="3" placeholder="Giới thiệu ngắn về CLB"><?= htmlspecialchars($edit_club['description'] ?? '') ?></textarea>
                             </div>
                             <div class="form-actions">
                                 <button type="submit" class="btn-primary">Lưu thay đổi</button>
@@ -326,12 +326,12 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                                 <td>
                                     <div class="club-name-cell">
                                         <span class="color-dot" style="background: <?= htmlspecialchars($club['color'] ?? '#667eea') ?>"></span>
-                                        <span><?= htmlspecialchars($club['ten_clb']) ?></span>
+                                        <span><?= htmlspecialchars($club['name']) ?></span>
                                     </div>
                                 </td>
-                                <td><?= htmlspecialchars($club['linh_vuc']) ?></td>
-                                <td><?= htmlspecialchars($club['doi_truong'] ?? 'Chưa có') ?></td>
-                                <td><?= number_format($club['so_thanh_vien']) ?></td>
+                                <td><?= htmlspecialchars($club['category']) ?></td>
+                                <td><?= htmlspecialchars($club['leader_name'] ?? 'Chưa có') ?></td>
+                                <td><?= number_format($club['total_members']) ?></td>
                                 <td><?= date('d/m/Y', strtotime($club['created_at'])) ?></td>
                                 <td>
                                     <div class="action-buttons">

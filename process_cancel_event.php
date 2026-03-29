@@ -33,7 +33,7 @@ if ($event_id <= 0) {
 }
 
 // Lấy thông tin sự kiện và CLB
-$event_sql = "SELECT e.ten_su_kien, e.club_id FROM events e WHERE e.id = ?";
+$event_sql = "SELECT e.name, e.club_id FROM events e WHERE e.id = ?";
 $stmt_evt = $conn->prepare($event_sql);
 $stmt_evt->bind_param("i", $event_id);
 $stmt_evt->execute();
@@ -57,16 +57,16 @@ if (!$reg) {
     exit;
 }
 
-// Chỉ thành viên đang hoạt động hoặc chủ CLB mới được hủy
+// Chỉ thành viên đang hoạt động hoặc leader CLB mới được hủy
 $club_id = (int)$event['club_id'];
-$member_stmt = $conn->prepare("SELECT 1 FROM club_members WHERE club_id = ? AND user_id = ? AND trang_thai = 'dang_hoat_dong'");
+$member_stmt = $conn->prepare("SELECT 1 FROM members WHERE club_id = ? AND user_id = ? AND status = 'active'");
 $member_stmt->bind_param("ii", $club_id, $user_id);
 $member_stmt->execute();
 $is_active_member = $member_stmt->get_result()->num_rows > 0;
 $member_stmt->close();
 
 if (!$is_active_member) {
-    $owner_stmt = $conn->prepare("SELECT 1 FROM clubs WHERE id = ? AND chu_nhiem_id = ?");
+    $owner_stmt = $conn->prepare("SELECT 1 FROM clubs WHERE id = ? AND leader_id = ?");
     $owner_stmt->bind_param("ii", $club_id, $user_id);
     $owner_stmt->execute();
     $is_owner = $owner_stmt->get_result()->num_rows > 0;
@@ -83,25 +83,25 @@ $del->bind_param("i", $reg['id']);
 if ($del->execute()) {
     // Gửi thông báo cho quản lý CLB về việc hủy đăng ký
     // Lấy tên user
-    $user_sql = "SELECT ho_ten FROM users WHERE id = ?";
+    $user_sql = "SELECT full_name FROM users WHERE id = ?";
     $user_stmt = $conn->prepare($user_sql);
     $user_stmt->bind_param("i", $user_id);
     $user_stmt->execute();
     $user_res = $user_stmt->get_result();
-    $user_name = $user_res && $user_res->num_rows > 0 ? $user_res->fetch_assoc()['ho_ten'] : 'Một người dùng';
+    $user_name = $user_res && $user_res->num_rows > 0 ? $user_res->fetch_assoc()['full_name'] : 'Một người dùng';
     $user_stmt->close();
 
     // Lấy danh sách quản lý CLB
     $club_id = (int)$event['club_id'];
     $managers_sql = "SELECT DISTINCT user_id FROM (
-                        SELECT chu_nhiem_id as user_id FROM clubs WHERE id = ?
+                        SELECT leader_id as user_id FROM clubs WHERE id = ?
                         UNION
-                        SELECT user_id FROM club_members 
-                        WHERE club_id = ? AND trang_thai = 'dang_hoat_dong' 
-                        AND vai_tro IN ('doi_truong', 'doi_pho', 'truong_ban')
+                        SELECT user_id FROM members 
+                        WHERE club_id = ? AND status = 'active' 
+                        AND role IN ('leader', 'vice_leader', 'head')
                         UNION
-                        SELECT truong_phong_id as user_id FROM phong_ban 
-                        WHERE club_id = ? AND truong_phong_id IS NOT NULL
+                        SELECT head_id as user_id FROM departments 
+                        WHERE club_id = ? AND head_id IS NOT NULL
                     ) AS managers";
     $mgr_stmt = $conn->prepare($managers_sql);
     $mgr_stmt->bind_param("iii", $club_id, $club_id, $club_id);
@@ -110,8 +110,8 @@ if ($del->execute()) {
 
     $notif_title = "Thành viên hủy đăng ký sự kiện";
     $notif_link = "chi_tiet_su_kien.php?id=" . $event_id;
-    $notif_type = "event_invite";
-    $notif_message = $user_name . " đã hủy đăng ký sự kiện \"" . htmlspecialchars($event['ten_su_kien']) . "\"";
+    $notif_type = "event";
+    $notif_message = $user_name . " đã hủy đăng ký sự kiện \"" . htmlspecialchars($event['name']) . "\"";
 
     while ($mgr = $mgr_res->fetch_assoc()) {
         $mgr_id = $mgr['user_id'];
@@ -130,4 +130,4 @@ if ($del->execute()) {
     echo json_encode(['success' => false, 'message' => 'Không thể hủy đăng ký, vui lòng thử lại.']);
 }
 $del->close();
-
+?>

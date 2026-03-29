@@ -25,13 +25,13 @@ if (isset($_SESSION['flash_users'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     if ($action === 'create') {
-        $ho_ten   = trim($_POST['ho_ten'] ?? '');
+        $full_name = trim($_POST['full_name'] ?? '');
         $username = trim($_POST['username'] ?? '');
         $email    = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
-        $vai_tro  = $_POST['vai_tro'] === 'ADMIN' ? 'ADMIN' : 'THANH_VIEN';
+        $role  = $_POST['role'] === 'admin' ? 'admin' : 'member';
 
-        if ($ho_ten === '' || $username === '' || $password === '') {
+        if ($full_name === '' || $username === '' || $password === '') {
             $message = 'Vui lòng nhập họ tên, username và mật khẩu.';
             $message_type = 'error';
         } elseif (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -47,8 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message_type = 'error';
             } else {
                 $hashed = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $conn->prepare("INSERT INTO users (ho_ten, username, email, password, vai_tro) VALUES (?, ?, ?, ?, ?)");
-                $stmt->bind_param("sssss", $ho_ten, $username, $email, $hashed, $vai_tro);
+                $stmt = $conn->prepare("INSERT INTO users (full_name, username, email, password, role) VALUES (?, ?, ?, ?, ?)");
+                $stmt->bind_param("sssss", $full_name, $username, $email, $hashed, $role);
                 if ($stmt->execute()) {
                     $_SESSION['flash_users'] = ['message' => 'Thêm người dùng thành công.', 'type' => 'success'];
                     header('Location: users.php');
@@ -63,12 +63,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($action === 'update') {
         $id = (int)($_POST['id'] ?? 0);
-        $ho_ten   = trim($_POST['ho_ten'] ?? '');
+        $full_name = trim($_POST['full_name'] ?? '');
         $email    = trim($_POST['email'] ?? '');
-        $vai_tro  = $_POST['vai_tro'] === 'ADMIN' ? 'ADMIN' : 'THANH_VIEN';
+        $role  = $_POST['role'] === 'admin' ? 'admin' : 'member';
         $password = $_POST['password'] ?? '';
 
-        if ($id <= 0 || $ho_ten === '') {
+        if ($id <= 0 || $full_name === '') {
             $message = 'Thiếu thông tin để cập nhật.';
             $message_type = 'error';
         } elseif (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -77,17 +77,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             if ($password !== '') {
                 $hashed = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $conn->prepare("UPDATE users SET ho_ten = ?, email = ?, password = ?, vai_tro = ? WHERE id = ?");
-                $stmt->bind_param("ssssi", $ho_ten, $email, $hashed, $vai_tro, $id);
+                $stmt = $conn->prepare("UPDATE users SET full_name = ?, email = ?, password = ?, role = ? WHERE id = ?");
+                $stmt->bind_param("ssssi", $full_name, $email, $hashed, $role, $id);
             } else {
-                $stmt = $conn->prepare("UPDATE users SET ho_ten = ?, email = ?, vai_tro = ? WHERE id = ?");
-                $stmt->bind_param("sssi", $ho_ten, $email, $vai_tro, $id);
+                $stmt = $conn->prepare("UPDATE users SET full_name = ?, email = ?, role = ? WHERE id = ?");
+                $stmt->bind_param("sssi", $full_name, $email, $role, $id);
             }
             if ($stmt->execute()) {
                 $_SESSION['flash_users'] = ['message' => 'Cập nhật người dùng thành công.', 'type' => 'success'];
                 // nếu đang chỉnh sửa chính mình, cập nhật session display name
                 if ($id === ($_SESSION['admin_id'] ?? 0)) {
-                    $_SESSION['admin_name'] = $ho_ten;
+                    $_SESSION['admin_name'] = $full_name;
                     $_SESSION['admin_email'] = $email;
                 }
                 header('Location: users.php');
@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Lấy dữ liệu user cần chỉnh sửa nếu có
 if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
     $edit_id = (int)$_GET['edit_id'];
-    $stmt = $conn->prepare("SELECT id, ho_ten, username, email, vai_tro FROM users WHERE id = ?");
+    $stmt = $conn->prepare("SELECT id, full_name, username, email, role FROM users WHERE id = ?");
     $stmt->bind_param("i", $edit_id);
     $stmt->execute();
     $edit_user = $stmt->get_result()->fetch_assoc();
@@ -146,7 +146,7 @@ $params = [];
 $types = '';
 
 if (!empty($search)) {
-    $where_conditions[] = "(ho_ten LIKE ? OR username LIKE ? OR email LIKE ?)";
+    $where_conditions[] = "(full_name LIKE ? OR username LIKE ? OR email LIKE ?)";
     $search_param = '%' . $search . '%';
     $params[] = $search_param;
     $params[] = $search_param;
@@ -155,7 +155,7 @@ if (!empty($search)) {
 }
 
 if (!empty($role_filter)) {
-    $where_conditions[] = "vai_tro = ?";
+    $where_conditions[] = "role = ?";
     $params[] = $role_filter;
     $types .= 's';
 }
@@ -177,7 +177,7 @@ if (!empty($params)) {
 $total_pages = ceil($total_users / $items_per_page);
 
 // Lấy danh sách users
-$sql = "SELECT id, ho_ten, username, email, vai_tro, created_at, avatar FROM users $where_clause ORDER BY created_at DESC LIMIT ? OFFSET ?";
+$sql = "SELECT id, full_name, username, email, role, created_at, avatar FROM users $where_clause ORDER BY created_at DESC LIMIT ? OFFSET ?";
 $params[] = $items_per_page;
 $params[] = $offset;
 $types .= 'ii';
@@ -234,7 +234,7 @@ $stmt->close();
                             <input type="hidden" name="action" value="create">
                             <div class="form-group">
                                 <label>Họ tên</label>
-                                <input type="text" name="ho_ten" required>
+                                <input type="text" name="full_name" required>
                             </div>
                             <div class="form-group">
                                 <label>Username</label>
@@ -250,9 +250,9 @@ $stmt->close();
                             </div>
                             <div class="form-group">
                                 <label>Vai trò</label>
-                                <select name="vai_tro">
-                                    <option value="THANH_VIEN">Thành viên</option>
-                                    <option value="ADMIN">Admin</option>
+                                <select name="role">
+                                    <option value="member">Thành viên</option>
+                                    <option value="admin">Admin</option>
                                 </select>
                             </div>
                             <div class="form-actions">
@@ -278,7 +278,7 @@ $stmt->close();
                             <input type="hidden" name="id" value="<?= $edit_user['id'] ?>">
                             <div class="form-group">
                                 <label>Họ tên</label>
-                                <input type="text" name="ho_ten" value="<?= htmlspecialchars($edit_user['ho_ten']) ?>" required>
+                                <input type="text" name="full_name" value="<?= htmlspecialchars($edit_user['full_name']) ?>" required>
                             </div>
                             <div class="form-group">
                                 <label>Username</label>
@@ -294,9 +294,9 @@ $stmt->close();
                             </div>
                             <div class="form-group">
                                 <label>Vai trò</label>
-                                <select name="vai_tro">
-                                    <option value="THANH_VIEN" <?= $edit_user['vai_tro'] === 'THANH_VIEN' ? 'selected' : '' ?>>Thành viên</option>
-                                    <option value="ADMIN" <?= $edit_user['vai_tro'] === 'ADMIN' ? 'selected' : '' ?>>Admin</option>
+                                <select name="role">
+                                    <option value="member" <?= $edit_user['role'] === 'member' ? 'selected' : '' ?>>Thành viên</option>
+                                    <option value="admin" <?= $edit_user['role'] === 'admin' ? 'selected' : '' ?>>Admin</option>
                                 </select>
                             </div>
                             <div class="form-actions">
@@ -322,8 +322,8 @@ $stmt->close();
                     
                     <select name="role" class="filter-select">
                         <option value="">Tất cả vai trò</option>
-                        <option value="ADMIN" <?= $role_filter === 'ADMIN' ? 'selected' : '' ?>>Admin</option>
-                        <option value="THANH_VIEN" <?= $role_filter === 'THANH_VIEN' ? 'selected' : '' ?>>Thành viên</option>
+                        <option value="admin" <?= $role_filter === 'admin' ? 'selected' : '' ?>>Admin</option>
+                        <option value="member" <?= $role_filter === 'member' ? 'selected' : '' ?>>Thành viên</option>
                     </select>
                     
                     <button type="submit" class="btn-primary">Tìm kiếm</button>
@@ -356,16 +356,16 @@ $stmt->close();
                                 <td>
                                     <div class="user-cell">
                                         <img src="<?= !empty($user['avatar']) ? '../' . htmlspecialchars($user['avatar']) : '../assets/img/avatars/user.svg' ?>" 
-                                             alt="<?= htmlspecialchars($user['ho_ten'] ?? 'User') ?>" 
+                                             alt="<?= htmlspecialchars($user['full_name'] ?? 'User') ?>" 
                                              class="user-avatar-small">
-                                        <span><?= htmlspecialchars($user['ho_ten'] ?? 'Chưa cập nhật') ?></span>
+                                        <span><?= htmlspecialchars($user['full_name'] ?? 'Chưa cập nhật') ?></span>
                                     </div>
                                 </td>
                                 <td><?= htmlspecialchars($user['username']) ?></td>
                                 <td><?= htmlspecialchars($user['email'] ?? 'Chưa có') ?></td>
                                 <td>
-                                    <span class="badge <?= $user['vai_tro'] === 'ADMIN' ? 'badge-danger' : 'badge-primary' ?>">
-                                        <?= $user['vai_tro'] === 'ADMIN' ? 'Admin' : 'Thành viên' ?>
+                                    <span class="badge <?= $user['role'] === 'admin' ? 'badge-danger' : 'badge-primary' ?>">
+                                        <?= $user['role'] === 'admin' ? 'Admin' : 'Thành viên' ?>
                                     </span>
                                 </td>
                                 <td><?= date('d/m/Y', strtotime($user['created_at'])) ?></td>

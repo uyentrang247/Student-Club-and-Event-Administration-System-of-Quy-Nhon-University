@@ -47,19 +47,19 @@ if (!can_manage_club($conn, $user_id, $club_id)) {
     
     <div class="form-group">
         <label class="name-event">Tên sự kiện</label>
-        <input type="text" name="ten_su_kien" required>
+        <input type="text" name="name" required>
     </div>
 
     <div class="form-group mo-ta-sk">
         <h3 class="section-title">📝 Giới thiệu / mô tả</h3>
         <label>Mô tả sự kiện</label>
-        <textarea name="mo_ta" rows="5" required></textarea>
+        <textarea name="short_desc" rows="5" required></textarea>
     </div>
 
     <div class="form-group nd-chitiet">
         <h3 class="section-title">📌 Nội dung chi tiết</h3>
         <label>Mô tả nội dung chi tiết của sự kiện</label>
-        <textarea name="noi_dung_chi_tiet" rows="6" required></textarea>
+        <textarea name="full_desc" rows="6" required></textarea>
     </div>
 
     <div class="form-group upload-container">
@@ -68,36 +68,36 @@ if (!can_manage_club($conn, $user_id, $club_id)) {
 
         <label class="upload-anhbia">
             Chọn ảnh mới
-            <input type="file" name="anhbia" id="anhbia" accept="image/*" style="display:none" required>
+            <input type="file" name="cover" id="cover" accept="image/*" style="display:none" required>
         </label>
     </div>
 
     <div class="form-group">
         <label>Địa điểm tổ chức</label>
-        <input type="text" name="dia_diem" required>
+        <input type="text" name="location" required>
     </div>
 
     <div class="two-col">
         <div class="form-group">
             <label>Thời gian bắt đầu</label>
-            <input type="datetime-local" name="tg_bat_dau" required>
+            <input type="datetime-local" name="start_time" required>
         </div>
 
         <div class="form-group">
             <label>Thời gian kết thúc</label>
-            <input type="datetime-local" name="tg_ket_thuc" required>
+            <input type="datetime-local" name="end_time" required>
         </div>
     </div>
 
     <div class="two-col">
         <div class="form-group">
             <label>Số lượng tối đa</label>
-            <input type="number" name="so_luong" min="1" required>
+            <input type="number" name="max_participants" min="1" required>
         </div>
 
         <div class="form-group">
             <label>Hạn đăng ký</label>
-            <input type="datetime-local" name="han_dang_ky" required>
+            <input type="datetime-local" name="reg_deadline" required>
 
         </div>
     </div>
@@ -121,9 +121,8 @@ if (!can_manage_club($conn, $user_id, $club_id)) {
 <script src="assets/js/image-preview.js"></script>
 <script>
 // JS preview ảnh bìa
-initImagePreview('anhbia', 'preview', { useFileReader: false });
+initImagePreview('cover', 'preview', { useFileReader: false });
 </script>
 
 </body>
 </html>
- 

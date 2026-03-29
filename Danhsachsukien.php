@@ -12,12 +12,12 @@ $sql_count = "SELECT COUNT(*) as total FROM events";
 $result_count = $conn->query($sql_count);
 $total_events = $result_count->fetch_assoc()['total'];
 
-// Lấy danh sách sự kiện với thông tin câu lạc bộ và ảnh bìa từ media_library
-$sql = "SELECT e.*, c.ten_clb, c.linh_vuc, anh_bia.file_path AS anh_bia_path
+// Lấy danh sách sự kiện với thông tin câu lạc bộ và ảnh bìa từ media
+$sql = "SELECT e.*, c.name as club_name, c.category, cover.path AS cover_path
         FROM events e 
         LEFT JOIN clubs c ON e.club_id = c.id 
-        LEFT JOIN media_library anh_bia ON e.anh_bia_id = anh_bia.id
-        ORDER BY e.thoi_gian_bat_dau DESC";
+        LEFT JOIN media cover ON e.cover_id = cover.id
+        ORDER BY e.start_time DESC";
 $result = $conn->query($sql);
 $events = [];
 if ($result && $result->num_rows > 0) {
@@ -42,14 +42,14 @@ if ($result && $result->num_rows > 0) {
 $owner_club_id = 0;
 $owner_club_name = '';
 if (isset($_SESSION['user_id'])) {
-    $owner_stmt = $conn->prepare("SELECT id, ten_clb FROM clubs WHERE chu_nhiem_id = ? ORDER BY id ASC LIMIT 1");
+    $owner_stmt = $conn->prepare("SELECT id, name FROM clubs WHERE leader_id = ? ORDER BY id ASC LIMIT 1");
     $owner_stmt->bind_param("i", $_SESSION['user_id']);
     $owner_stmt->execute();
     $owner_res = $owner_stmt->get_result();
     if ($owner_res && $owner_res->num_rows > 0) {
         $owner = $owner_res->fetch_assoc();
         $owner_club_id = (int)$owner['id'];
-        $owner_club_name = $owner['ten_clb'];
+        $owner_club_name = $owner['name'];
     }
     $owner_stmt->close();
 }
@@ -147,34 +147,37 @@ if (isset($_SESSION['user_id'])) {
         $hidden_class = ($index >= 6) ? 'hidden-event' : '';
         $badge_color = $badge_colors[$index % count($badge_colors)];
         
-        // Xử lý ảnh bìa - lấy từ media_library
+        // Xử lý ảnh bìa
         $event_image = 'https://via.placeholder.com/400x300?text=Event+Image';
-        if (!empty($event['anh_bia_path'])) {
-            $anh_bia_path = $event['anh_bia_path'];
-            // Kiểm tra file có tồn tại không
-            if (file_exists($anh_bia_path) || file_exists(__DIR__ . '/' . $anh_bia_path)) {
-                $event_image = htmlspecialchars($anh_bia_path);
+        if (!empty($event['cover_path'])) {
+            $cover_path = $event['cover_path'];
+            if (file_exists($cover_path) || file_exists(__DIR__ . '/' . $cover_path)) {
+                $event_image = htmlspecialchars($cover_path);
             }
         }
         
         // Xử lý mô tả ngắn
-        $short_desc = mb_substr($event['mo_ta'], 0, 100) . '...';
+        $short_desc = mb_substr($event['short_desc'], 0, 100) . '...';
         
         // Xử lý trạng thái
         $status_class = '';
         $status_text = '';
-        switch($event['trang_thai']) {
-            case 'sap_dien_ra':
+        switch($event['status']) {
+            case 'upcoming':
                 $status_class = 'upcoming';
                 $status_text = 'Sắp diễn ra';
                 break;
-            case 'dang_dien_ra':
+            case 'ongoing':
                 $status_class = 'ongoing';
                 $status_text = 'Đang diễn ra';
                 break;
-            case 'da_ket_thuc':
+            case 'completed':
                 $status_class = 'ended';
                 $status_text = 'Đã kết thúc';
+                break;
+            case 'cancelled':
+                $status_class = 'cancelled';
+                $status_text = 'Đã hủy';
                 break;
             default:
                 $status_class = 'upcoming';
@@ -182,23 +185,23 @@ if (isset($_SESSION['user_id'])) {
         }
         
         // Format ngày tháng
-        $event_date = date('d', strtotime($event['thoi_gian_bat_dau']));
-        $event_month = 'Tháng ' . date('m', strtotime($event['thoi_gian_bat_dau']));
+        $event_date = date('d', strtotime($event['start_time']));
+        $event_month = 'Tháng ' . date('m', strtotime($event['start_time']));
     ?>
     <?php
         // Lấy lĩnh vực từ CLB
-        $linh_vuc = trim((string)($event['linh_vuc'] ?? ''));
-        if (empty($linh_vuc) || $linh_vuc === '0') {
-            $linh_vuc = 'Chưa phân loại';
+        $category = trim((string)($event['category'] ?? ''));
+        if (empty($category) || $category === '0') {
+            $category = 'Chưa phân loại';
         }
     ?>
     <div class="event-card <?php echo $hidden_class; ?>" 
-         data-category="<?php echo htmlspecialchars($linh_vuc); ?>"
-         data-name="<?php echo htmlspecialchars($event['ten_su_kien']); ?>">
+         data-category="<?php echo htmlspecialchars($category); ?>"
+         data-name="<?php echo htmlspecialchars($event['name']); ?>">
         
         <div class="event-image-wrapper">
             <img class="event-img" src="<?php echo $event_image; ?>" 
-                 alt="<?php echo htmlspecialchars($event['ten_su_kien']); ?>"
+                 alt="<?php echo htmlspecialchars($event['name']); ?>"
                  onerror="this.src='https://via.placeholder.com/400x300?text=Event+Image'">
             <div class="event-date-badge">
                 <div class="date-day"><?php echo $event_date; ?></div>
@@ -211,24 +214,24 @@ if (isset($_SESSION['user_id'])) {
             
             <h2>
                 <a href="chi_tiet_su_kien.php?id=<?php echo $event['id']; ?>" class="event-title-link">
-                    <?php echo htmlspecialchars($event['ten_su_kien']); ?>
+                    <?php echo htmlspecialchars($event['name']); ?>
                 </a>
             </h2>
             
             <div class="event-meta">
                 <p class="event-club">
                     <i class="icon">🏛️</i>
-                    <?php echo htmlspecialchars($event['ten_clb'] ?? 'Chưa có CLB'); ?>
+                    <?php echo htmlspecialchars($event['club_name'] ?? 'Chưa có CLB'); ?>
                 </p>
                 <p class="event-location">
                     <i class="icon">📍</i>
-                    <?php echo htmlspecialchars($event['dia_diem'] ?: 'Chưa cập nhật'); ?>
+                    <?php echo htmlspecialchars($event['location'] ?: 'Chưa cập nhật'); ?>
                 </p>
             </div>
 
             <div class="event-footer">
                 <p class="participant-count">
-                    👥 Đã đăng ký: <strong><?php echo $event['registered_count'] ?? 0; ?></strong> / <?php echo $event['so_luong_toi_da']; ?> người
+                    👥 Đã đăng ký: <strong><?php echo $event['registered_count'] ?? 0; ?></strong> / <?php echo $event['max_participants']; ?> người
                 </p>
                 <a href="chi_tiet_su_kien.php?id=<?php echo $event['id']; ?>" class="btn-join">Tham gia</a>
             </div>

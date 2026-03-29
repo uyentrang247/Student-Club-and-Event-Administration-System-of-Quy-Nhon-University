@@ -16,9 +16,9 @@ if (!$member_id) {
     exit;
 }
 
-// Lấy thông tin member bao gồm phong_ban_id
-$sql = "SELECT id, club_id, user_id, phong_ban_id, trang_thai 
-        FROM club_members 
+// Lấy thông tin member bao gồm department_id và status
+$sql = "SELECT id, club_id, user_id, department_id, status, role
+        FROM members 
         WHERE id = ?";
 
 $stmt = $conn->prepare($sql);

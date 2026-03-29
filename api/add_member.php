@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $club_id = isset($_POST['club_id']) ? (int)$_POST['club_id'] : 0;
 $user_id = isset($_POST['user_id']) ? (int)$_POST['user_id'] : 0;
-$phong_ban_id = isset($_POST['phong_ban_id']) && $_POST['phong_ban_id'] !== '' ? (int)$_POST['phong_ban_id'] : null;
+$department_id = isset($_POST['department_id']) && $_POST['department_id'] !== '' ? (int)$_POST['department_id'] : null;
 $current_user_id = $_SESSION['user_id'];
 
 if (!$club_id || !$user_id) {
@@ -43,7 +43,7 @@ if (!$club_id || !$user_id) {
 }
 
 // Phòng ban là bắt buộc
-if ($phong_ban_id === null || $phong_ban_id <= 0) {
+if ($department_id === null || $department_id <= 0) {
     json_response(['success' => false, 'message' => 'Vui lòng chọn phòng ban'], HttpStatus::BAD_REQUEST);
 }
 
@@ -63,8 +63,8 @@ if (!can_manage_club($conn, $current_user_id, $club_id)) {
 }
 
 // Kiểm tra phòng ban thuộc CLB
-$dept_stmt = $conn->prepare("SELECT id FROM phong_ban WHERE id = ? AND club_id = ?");
-$dept_stmt->bind_param("ii", $phong_ban_id, $club_id);
+$dept_stmt = $conn->prepare("SELECT id FROM departments WHERE id = ? AND club_id = ?");
+$dept_stmt->bind_param("ii", $department_id, $club_id);
 $dept_stmt->execute();
 $valid_dept = $dept_stmt->get_result()->num_rows > 0;
 $dept_stmt->close();
@@ -73,7 +73,7 @@ if (!$valid_dept) {
 }
 
 // Kiểm tra xem user đã là thành viên chưa
-$check_member = "SELECT id FROM club_members WHERE club_id = ? AND user_id = ?";
+$check_member = "SELECT id FROM members WHERE club_id = ? AND user_id = ?";
 if ($stmt = $conn->prepare($check_member)) {
     $stmt->bind_param("ii", $club_id, $user_id);
     $stmt->execute();
@@ -88,17 +88,18 @@ if ($stmt = $conn->prepare($check_member)) {
 }
 
 // Thêm thành viên mới (bắt buộc có phòng ban)
-$insert_member = "INSERT INTO club_members (club_id, user_id, vai_tro, trang_thai, phong_ban_id) 
+// Database mới: bảng members, cột role, department_id, status
+$insert_member = "INSERT INTO members (club_id, user_id, role, status, department_id) 
                   VALUES (?, ?, ?, ?, ?)";
 
 if ($stmt = $conn->prepare($insert_member)) {
-    $vai_tro = UserRole::THANH_VIEN;
-    $trang_thai = MemberStatus::DANG_HOAT_DONG;
-    $stmt->bind_param("iissi", $club_id, $user_id, $vai_tro, $trang_thai, $phong_ban_id);
+    $role = 'member';           // Thay vì UserRole::THANH_VIEN
+    $status = 'active';         // Thay vì MemberStatus::DANG_HOAT_DONG
+    $stmt->bind_param("iissi", $club_id, $user_id, $role, $status, $department_id);
     
     if ($stmt->execute()) {
         // Lấy thông tin CLB
-        $get_club = "SELECT ten_clb FROM clubs WHERE id = ?";
+        $get_club = "SELECT name FROM clubs WHERE id = ?";
         $club_name = "CLB";
         
         if ($stmt_club = $conn->prepare($get_club)) {
@@ -106,7 +107,7 @@ if ($stmt = $conn->prepare($insert_member)) {
             $stmt_club->execute();
             $result_club = $stmt_club->get_result();
             if ($row = $result_club->fetch_assoc()) {
-                $club_name = $row['ten_clb'];
+                $club_name = $row['name'];
             }
             $stmt_club->close();
         }
@@ -115,7 +116,7 @@ if ($stmt = $conn->prepare($insert_member)) {
         $notification_title = "Bạn đã được thêm vào CLB";
         $notification_message = "Bạn đã được thêm vào CLB " . $club_name . ". Chào mừng bạn đến với CLB!";
         $notification_link = "club-detail.php?id=" . $club_id;
-        $notification_type = NotificationType::CLUB_JOIN;
+        $notification_type = 'club_join';
         
         $insert_notification = "INSERT INTO notifications (user_id, type, title, message, link) 
                                VALUES (?, ?, ?, ?, ?)";
@@ -130,9 +131,9 @@ if ($stmt = $conn->prepare($insert_member)) {
         log_error("Member added to club", ['club_id' => $club_id, 'user_id' => $user_id, 'added_by' => $current_user_id]);
         
         // Cập nhật số lượng thành viên
-        $update_count = "UPDATE clubs SET so_thanh_vien = (
-                            SELECT COUNT(*) FROM club_members 
-                            WHERE club_id = ? AND trang_thai = 'dang_hoat_dong'
+        $update_count = "UPDATE clubs SET total_members = (
+                            SELECT COUNT(*) FROM members 
+                            WHERE club_id = ? AND status = 'active'
                         ) WHERE id = ?";
         
         if ($stmt_update = $conn->prepare($update_count)) {

@@ -7,42 +7,42 @@ load_header();
 // Lấy danh sách CLB từ database
 require('assets/database/connect.php');
 
-// Kiểm tra xem bảng club_pages có tồn tại không
-$table_check = $conn->query("SHOW TABLES LIKE 'club_pages'");
-$has_club_pages = ($table_check && $table_check->num_rows > 0);
+// Kiểm tra xem bảng pages có tồn tại không
+$table_check = $conn->query("SHOW TABLES LIKE 'pages'");
+$has_pages = ($table_check && $table_check->num_rows > 0);
 
-if ($has_club_pages) {
-    // Nếu có bảng club_pages, join để lấy banner
+if ($has_pages) {
+    // Nếu có bảng pages, join để lấy banner
     // Chỉ đếm thành viên đang hoạt động
     require_once __DIR__ . '/includes/constants.php';
-    $status_active = MemberStatus::DANG_HOAT_DONG;
-    // Lấy banner/logo thực tế từ bảng media_library thay vì cột banner_url cũ
+    $status_active = MemberStatus::ACTIVE;
+    // Lấy banner/logo thực tế từ bảng media
     $sql = "SELECT 
-                c.id, c.ten_clb, c.mo_ta, c.linh_vuc, c.color, c.ngay_thanh_lap, c.chu_nhiem_id, c.created_at,
-                banner.file_path AS banner_url,
-                logo.file_path AS logo_url,
-                COUNT(CASE WHEN cm.trang_thai = ? THEN 1 END) AS so_thanh_vien 
+                c.id, c.name, c.description, c.category, c.color, c.founded_date, c.leader_id, c.created_at,
+                banner.path AS banner_url,
+                logo.path AS logo_url,
+                COUNT(CASE WHEN m.status = ? THEN 1 END) AS total_members 
             FROM clubs c 
-            LEFT JOIN club_pages cp ON c.id = cp.club_id
-            LEFT JOIN media_library banner ON cp.banner_id = banner.id
-            LEFT JOIN media_library logo ON cp.logo_id = logo.id
-            LEFT JOIN club_members cm ON c.id = cm.club_id 
-            GROUP BY c.id, c.ten_clb, c.mo_ta, c.linh_vuc, c.color, c.ngay_thanh_lap, c.chu_nhiem_id, c.created_at, banner.file_path, logo.file_path
+            LEFT JOIN pages p ON c.id = p.club_id
+            LEFT JOIN media banner ON p.banner_id = banner.id
+            LEFT JOIN media logo ON p.logo_id = logo.id
+            LEFT JOIN members m ON c.id = m.club_id 
+            GROUP BY c.id, c.name, c.description, c.category, c.color, c.founded_date, c.leader_id, c.created_at, banner.path, logo.path
             ORDER BY c.id ASC";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $status_active);
     $stmt->execute();
     $result = $stmt->get_result();
 } else {
-    // Nếu chưa có bảng club_pages, chỉ lấy từ clubs
+    // Nếu chưa có bảng pages, chỉ lấy từ clubs
     // Chỉ đếm thành viên đang hoạt động
     require_once __DIR__ . '/includes/constants.php';
-    $status_active = MemberStatus::DANG_HOAT_DONG;
-    $sql = "SELECT c.id, c.ten_clb, c.mo_ta, c.linh_vuc, c.color, c.ngay_thanh_lap, c.chu_nhiem_id, c.created_at,
-                COUNT(CASE WHEN cm.trang_thai = ? THEN 1 END) as so_thanh_vien 
+    $status_active = MemberStatus::ACTIVE;
+    $sql = "SELECT c.id, c.name, c.description, c.category, c.color, c.founded_date, c.leader_id, c.created_at,
+                COUNT(CASE WHEN m.status = ? THEN 1 END) as total_members 
             FROM clubs c 
-            LEFT JOIN club_members cm ON c.id = cm.club_id 
-            GROUP BY c.id, c.ten_clb, c.mo_ta, c.linh_vuc, c.color, c.ngay_thanh_lap, c.chu_nhiem_id, c.created_at
+            LEFT JOIN members m ON c.id = m.club_id 
+            GROUP BY c.id, c.name, c.description, c.category, c.color, c.founded_date, c.leader_id, c.created_at
             ORDER BY c.id ASC";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $status_active);
@@ -51,9 +51,9 @@ if ($has_club_pages) {
 }
 $clubs = [];
 if ($result && $result->num_rows > 0) {
-    // Lấy danh sách tất cả user_id đã có trong club_members để tối ưu
+    // Lấy danh sách tất cả user_id đã có trong members để tối ưu
     $users_in_members = [];
-    $check_all_members = $conn->query("SELECT club_id, user_id FROM club_members WHERE trang_thai = 'dang_hoat_dong'");
+    $check_all_members = $conn->query("SELECT club_id, user_id FROM members WHERE status = 'active'");
     if ($check_all_members) {
         while ($member_row = $check_all_members->fetch_assoc()) {
             $key = $member_row['club_id'] . '_' . $member_row['user_id'];
@@ -61,44 +61,43 @@ if ($result && $result->num_rows > 0) {
         }
     }
 
-    // Lấy danh sách tất cả trưởng phòng ban
-    $truong_phong_list = [];
-    $check_truong_phong = $conn->query("SELECT club_id, truong_phong_id FROM phong_ban WHERE truong_phong_id IS NOT NULL");
-    if ($check_truong_phong) {
-        while ($tp_row = $check_truong_phong->fetch_assoc()) {
-            $club_id = $tp_row['club_id'];
-            $truong_phong_id = $tp_row['truong_phong_id'];
-            if (!isset($truong_phong_list[$club_id])) {
-                $truong_phong_list[$club_id] = [];
+    // Lấy danh sách tất cả head của departments
+    $head_list = [];
+    $check_head = $conn->query("SELECT club_id, head_id FROM departments WHERE head_id IS NOT NULL");
+    if ($check_head) {
+        while ($head_row = $check_head->fetch_assoc()) {
+            $club_id = $head_row['club_id'];
+            $head_id = $head_row['head_id'];
+            if (!isset($head_list[$club_id])) {
+                $head_list[$club_id] = [];
             }
-            $truong_phong_list[$club_id][] = $truong_phong_id;
+            $head_list[$club_id][] = $head_id;
         }
     }
 
     while ($row = $result->fetch_assoc()) {
-        // Lấy lĩnh vực trực tiếp từ database, không gán giá trị mặc định
-        $linh_vuc = trim((string)($row['linh_vuc'] ?? ''));
-        // Chỉ xử lý nếu thực sự rỗng, không gán "0" thành "Tình nguyện"
-        if ($linh_vuc === '') {
-            $linh_vuc = 'Chưa phân loại'; // Chỉ xử lý trường hợp rỗng hoàn toàn
+        // Lấy lĩnh vực trực tiếp từ database
+        $category = trim((string)($row['category'] ?? ''));
+        if ($category === '') {
+            $category = 'Uncategorized';
         }
-        $row['linh_vuc_display'] = $linh_vuc;
+        $row['category_display'] = $category;
 
         $club_id = $row['id'];
         $additional_members = 0;
 
-        // Kiểm tra đội trưởng: nếu chưa có trong club_members thì cộng thêm 1
-        if (!empty($row['chu_nhiem_id'])) {
-            $key = $club_id . '_' . $row['chu_nhiem_id'];
+        // Kiểm tra leader: nếu chưa có trong members thì cộng thêm 1
+        if (!empty($row['leader_id'])) {
+            $key = $club_id . '_' . $row['leader_id'];
             if (!isset($users_in_members[$key])) {
                 $additional_members++;
             }
         }
 
-        // Kiểm tra trưởng phòng ban: nếu chưa có trong club_members thì cộng thêm
-        if (isset($truong_phong_list[$club_id])) {
-            foreach ($truong_phong_list[$club_id] as $truong_phong_id) {
-                $key = $club_id . '_' . $truong_phong_id;
+        // Kiểm tra head của departments: nếu chưa có trong members thì cộng thêm
+        if (isset($head_list[$club_id])) {
+            foreach ($head_list[$club_id] as $head_id) {
+                $key = $club_id . '_' . $head_id;
                 if (!isset($users_in_members[$key])) {
                     $additional_members++;
                 }
@@ -106,7 +105,7 @@ if ($result && $result->num_rows > 0) {
         }
 
         // Cộng thêm số thành viên bị thiếu
-        $row['so_thanh_vien'] = $row['so_thanh_vien'] + $additional_members;
+        $row['total_members'] = $row['total_members'] + $additional_members;
 
         $clubs[] = $row;
     }
@@ -195,30 +194,27 @@ $total_clubs = count($clubs);
     <?php
     foreach ($clubs as $index => $club):
         $hidden_class = ($index >= 6) ? 'hidden-club' : '';
-        // Dùng một màu badge thống nhất (tím brand)
         $badge_color = 'purple';
-        $short_desc = mb_substr($club['mo_ta'], 0, 80) . '...';
-        // Lấy lĩnh vực từ database
-        $linh_vuc_display = $club['linh_vuc_display'] ?? $club['linh_vuc'] ?? '';
-        $linh_vuc_display = trim((string)$linh_vuc_display);
-        // Nếu rỗng hoặc "0" thì hiển thị "Chưa phân loại"
-        if (empty($linh_vuc_display) || $linh_vuc_display === '0') {
-            $linh_vuc_display = 'Chưa phân loại';
+        $short_desc = mb_substr($club['description'], 0, 80) . '...';
+        $category_display = $club['category_display'] ?? $club['category'] ?? '';
+        $category_display = trim((string)$category_display);
+        if (empty($category_display) || $category_display === '0') {
+            $category_display = 'Chưa phân loại';
         }
     ?>
         <div class="club-card <?php echo $hidden_class; ?>">
             <img class="club-img" src="<?php echo htmlspecialchars($club['banner_url'] ?? $club['logo_url'] ?? 'https://i.imgur.com/1Qd7UXJ.jpeg'); ?>"
-                alt="<?php echo htmlspecialchars($club['ten_clb']); ?>"
+                alt="<?php echo htmlspecialchars($club['name']); ?>"
                 onerror="this.src='https://i.imgur.com/1Qd7UXJ.jpeg'">
             <div class="club-info">
-                <span class="badge <?php echo $badge_color; ?>"><?php echo htmlspecialchars($linh_vuc_display); ?></span>
+                <span class="badge <?php echo $badge_color; ?>"><?php echo htmlspecialchars($category_display); ?></span>
                 <h2>
                     <a href="club-detail.php?id=<?php echo $club['id']; ?>" class="club-title-link">
-                        <?php echo htmlspecialchars($club['ten_clb']); ?>
+                        <?php echo htmlspecialchars($club['name']); ?>
                     </a>
                 </h2>
                 <p><?php echo htmlspecialchars($short_desc); ?></p>
-                <p class="member-count">👥 <?php echo $club['so_thanh_vien']; ?> thành viên</p>
+                <p class="member-count">👥 <?php echo $club['total_members']; ?> thành viên</p>
                 <a href="club-detail.php?id=<?php echo $club['id']; ?>" class="btn-detail">Chi tiết</a>
             </div>
         </div>

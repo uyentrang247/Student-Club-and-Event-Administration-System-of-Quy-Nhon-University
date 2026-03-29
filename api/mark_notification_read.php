@@ -35,3 +35,4 @@ if ($stmt = $conn->prepare($sql)) {
 }
 
 // Don't close connection - it's managed globally
+?>

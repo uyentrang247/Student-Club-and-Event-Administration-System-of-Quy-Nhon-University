@@ -19,7 +19,7 @@ if (!$club_id && isset($_SESSION['club_id'])) {
 
 // Nếu không có club_id, lấy từ user
 if (!$club_id) {
-    $stmt = $conn->prepare("SELECT id FROM clubs WHERE chu_nhiem_id = ? ORDER BY id ASC LIMIT 1");
+    $stmt = $conn->prepare("SELECT id FROM clubs WHERE leader_id = ? ORDER BY id ASC LIMIT 1");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -44,16 +44,16 @@ if (!$club_id) {
 
 // Lấy danh sách thành viên chờ duyệt
 $stmt = $conn->prepare("
-    SELECT cm.id, cm.user_id, cm.phong_ban_id,
-           u.ho_ten, u.username, u.email, u.so_dien_thoai,
-           pb.ten_phong_ban,
-           jr.loi_nhan
-    FROM club_members cm
-    JOIN users u ON cm.user_id = u.id
-    LEFT JOIN phong_ban pb ON cm.phong_ban_id = pb.id
-    LEFT JOIN join_requests jr ON jr.club_id = cm.club_id AND jr.user_id = cm.user_id AND jr.trang_thai = 'cho_duyet'
-    WHERE cm.club_id = ? AND cm.trang_thai = 'cho_duyet'
-    ORDER BY cm.joined_at DESC
+    SELECT m.id, m.user_id, m.department_id,
+           u.full_name, u.username, u.email, u.phone,
+           d.name AS department_name,
+           jr.message AS request_message
+    FROM members m
+    JOIN users u ON m.user_id = u.id
+    LEFT JOIN departments d ON m.department_id = d.id
+    LEFT JOIN join_requests jr ON jr.club_id = m.club_id AND jr.user_id = m.user_id AND jr.status = 'pending'
+    WHERE m.club_id = ? AND m.status = 'pending'
+    ORDER BY m.joined_at DESC
 ");
 $stmt->bind_param("i", $club_id);
 $stmt->execute();
@@ -77,8 +77,8 @@ if (empty($pending_members)) {
 
 // Hiển thị danh sách
 foreach ($pending_members as $member):
-    $initial = strtoupper(mb_substr($member['ho_ten'], 0, 1));
-    $memberName = htmlspecialchars($member['ho_ten']);
+    $initial = strtoupper(mb_substr($member['full_name'], 0, 1));
+    $memberName = htmlspecialchars($member['full_name']);
     $memberId = $member['id'];
 ?>
 <div id="pending-<?= $memberId ?>" class="pending-request-card">
@@ -87,14 +87,14 @@ foreach ($pending_members as $member):
         <div class="pending-info">
             <h4><?= $memberName ?></h4>
             <p><?= htmlspecialchars($member['email']) ?></p>
-            <?php if ($member['so_dien_thoai']): ?>
+            <?php if ($member['phone']): ?>
                 <p style="font-size: 12px; color: #9CA3AF; margin-top: 4px;">
-                    📞 <?= htmlspecialchars($member['so_dien_thoai']) ?>
+                    📞 <?= htmlspecialchars($member['phone']) ?>
                 </p>
             <?php endif; ?>
-            <?php if ($member['loi_nhan']): ?>
+            <?php if ($member['request_message']): ?>
                 <p style="font-size: 12px; color: #6B7280; margin-top: 4px; font-style: italic;">
-                    "<?= htmlspecialchars($member['loi_nhan']) ?>"
+                    "<?= htmlspecialchars($member['request_message']) ?>"
                 </p>
             <?php endif; ?>
         </div>
@@ -176,4 +176,3 @@ foreach ($pending_members as $member):
     cursor: not-allowed;
 }
 </style>
-

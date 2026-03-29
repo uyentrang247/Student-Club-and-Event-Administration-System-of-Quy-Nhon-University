@@ -125,7 +125,7 @@ $result = $conn->query($count_sql);
 $total_notifications = $result->fetch_assoc()['total'];
 $total_pages = ceil($total_notifications / $items_per_page);
 
-$sql = "SELECT n.*, u.ho_ten, u.username 
+$sql = "SELECT n.*, u.full_name, u.username 
         FROM notifications n
         LEFT JOIN users u ON n.user_id = u.id
         $where_clause
@@ -134,7 +134,7 @@ $sql = "SELECT n.*, u.ho_ten, u.username
 $notifications = $conn->query($sql)->fetch_all(MYSQLI_ASSOC);
 
 // Danh sách user cho select
-$users = $conn->query("SELECT id, ho_ten, username FROM users ORDER BY ho_ten ASC")->fetch_all(MYSQLI_ASSOC);
+$users = $conn->query("SELECT id, full_name, username FROM users ORDER BY full_name ASC")->fetch_all(MYSQLI_ASSOC);
 
 // Thông báo đang chỉnh sửa
 $edit_notif = null;
@@ -182,7 +182,8 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                     <select name="type" class="filter-select">
                         <option value="">Tất cả loại</option>
                         <option value="club_join" <?= $type_filter === 'club_join' ? 'selected' : '' ?>>Tham gia CLB</option>
-                        <option value="event_invite" <?= $type_filter === 'event_invite' ? 'selected' : '' ?>>Mời sự kiện</option>
+                        <option value="event" <?= $type_filter === 'event' ? 'selected' : '' ?>>Sự kiện</option>
+                        <option value="invite" <?= $type_filter === 'invite' ? 'selected' : '' ?>>Mời</option>
                         <option value="system" <?= $type_filter === 'system' ? 'selected' : '' ?>>Hệ thống</option>
                     </select>
                     
@@ -218,7 +219,7 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                             <?php foreach ($notifications as $notif): ?>
                             <tr>
                                 <td><?= $notif['id'] ?></td>
-                                <td><?= htmlspecialchars($notif['ho_ten'] ?? $notif['username'] ?? 'N/A') ?></td>
+                                <td><?= htmlspecialchars($notif['full_name'] ?? $notif['username'] ?? 'N/A') ?></td>
                                 <td>
                                     <span class="badge badge-info"><?= htmlspecialchars($notif['type']) ?></span>
                                 </td>
@@ -293,7 +294,7 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                                 <select name="user_id" required>
                                     <option value="">-- Chọn người dùng --</option>
                                     <?php foreach ($users as $u): ?>
-                                        <option value="<?= $u['id'] ?>"><?= htmlspecialchars($u['ho_ten'] ?: $u['username']) ?></option>
+                                        <option value="<?= $u['id'] ?>"><?= htmlspecialchars($u['full_name'] ?: $u['username']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -302,7 +303,8 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                                 <select name="type">
                                     <option value="system">Hệ thống</option>
                                     <option value="club_join">Tham gia CLB</option>
-                                    <option value="event_invite">Mời sự kiện</option>
+                                    <option value="event">Sự kiện</option>
+                                    <option value="invite">Mời</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -349,7 +351,7 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                                     <option value="">-- Chọn người dùng --</option>
                                     <?php foreach ($users as $u): ?>
                                         <option value="<?= $u['id'] ?>" <?= $edit_notif['user_id'] == $u['id'] ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($u['ho_ten'] ?: $u['username']) ?>
+                                            <?= htmlspecialchars($u['full_name'] ?: $u['username']) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -359,7 +361,8 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                                 <select name="type">
                                     <option value="system" <?= $edit_notif['type'] === 'system' ? 'selected' : '' ?>>Hệ thống</option>
                                     <option value="club_join" <?= $edit_notif['type'] === 'club_join' ? 'selected' : '' ?>>Tham gia CLB</option>
-                                    <option value="event_invite" <?= $edit_notif['type'] === 'event_invite' ? 'selected' : '' ?>>Mời sự kiện</option>
+                                    <option value="event" <?= $edit_notif['type'] === 'event' ? 'selected' : '' ?>>Sự kiện</option>
+                                    <option value="invite" <?= $edit_notif['type'] === 'invite' ? 'selected' : '' ?>>Mời</option>
                                 </select>
                             </div>
                             <div class="form-group">

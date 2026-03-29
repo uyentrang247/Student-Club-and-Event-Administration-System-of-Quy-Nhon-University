@@ -63,7 +63,7 @@ if (!$event) {
 }
 
 // Kiểm tra trạng thái sự kiện
-if (in_array($event['trang_thai'], ['da_ket_thuc', 'da_huy'], true)) {
+if (in_array($event['status'], ['completed', 'cancelled'], true)) {
     $conn->rollback();
     echo json_encode([
         'success' => false,
@@ -73,7 +73,7 @@ if (in_array($event['trang_thai'], ['da_ket_thuc', 'da_huy'], true)) {
 }
 
 // Kiểm tra hạn đăng ký
-if (!empty($event['han_dang_ky']) && strtotime($event['han_dang_ky']) < time()) {
+if (!empty($event['reg_deadline']) && strtotime($event['reg_deadline']) < time()) {
     $conn->rollback();
     echo json_encode([
         'success' => false,
@@ -82,7 +82,7 @@ if (!empty($event['han_dang_ky']) && strtotime($event['han_dang_ky']) < time()) 
     exit;
 }
 
-// Kiểm tra đã đăng ký chưa (sử dụng bảng event_registrations)
+// Kiểm tra đã đăng ký chưa
 $sql_check_registered = "SELECT * FROM event_registrations WHERE event_id = ? AND user_id = ?";
 $stmt = $conn->prepare($sql_check_registered);
 $stmt->bind_param("ii", $event_id, $user_id);
@@ -101,7 +101,7 @@ if ($already_registered) {
 
 // Kiểm tra user có phải là thành viên của CLB không
 $club_id = $event['club_id'];
-$check_member_sql = "SELECT id FROM club_members WHERE club_id = ? AND user_id = ? AND trang_thai = 'dang_hoat_dong'";
+$check_member_sql = "SELECT id FROM members WHERE club_id = ? AND user_id = ? AND status = 'active'";
 $stmt = $conn->prepare($check_member_sql);
 $stmt->bind_param("ii", $club_id, $user_id);
 $stmt->execute();
@@ -110,8 +110,8 @@ $is_member = $member_result->num_rows > 0;
 $stmt->close();
 
 if (!$is_member) {
-    // Kiểm tra xem user có phải là đội trưởng không
-    $check_owner_sql = "SELECT id FROM clubs WHERE id = ? AND chu_nhiem_id = ?";
+    // Kiểm tra xem user có phải là leader không
+    $check_owner_sql = "SELECT id FROM clubs WHERE id = ? AND leader_id = ?";
     $stmt = $conn->prepare($check_owner_sql);
     $stmt->bind_param("ii", $club_id, $user_id);
     $stmt->execute();
@@ -129,7 +129,7 @@ if (!$is_member) {
     }
 }
 
-// Kiểm tra số lượng tối đa (đếm tất cả người đã đăng ký)
+// Kiểm tra số lượng tối đa
 $sql_count = "SELECT COUNT(*) as total FROM event_registrations WHERE event_id = ?";
 $stmt = $conn->prepare($sql_count);
 $stmt->bind_param("i", $event_id);
@@ -137,8 +137,7 @@ $stmt->execute();
 $count = $stmt->get_result()->fetch_assoc()['total'];
 $stmt->close();
 
-// Nếu không thiết lập giới hạn (NULL/0), coi như không giới hạn
-$max_slots = (int)($event['so_luong_toi_da'] ?? 0);
+$max_slots = (int)($event['max_participants'] ?? 0);
 if ($max_slots > 0 && $count >= $max_slots) {
     $conn->rollback();
     echo json_encode([
@@ -148,23 +147,23 @@ if ($max_slots > 0 && $count >= $max_slots) {
     exit;
 }
 
-// Đăng ký tham gia (status mặc định là 'da_duyet' - tự động duyệt)
-$sql_insert = "INSERT INTO event_registrations (event_id, user_id, status) VALUES (?, ?, 'da_duyet')";
+// Đăng ký tham gia (status mặc định là 'approved' - tự động duyệt)
+$sql_insert = "INSERT INTO event_registrations (event_id, user_id, status) VALUES (?, ?, 'approved')";
 $stmt = $conn->prepare($sql_insert);
 $stmt->bind_param("ii", $event_id, $user_id);
 
 if ($stmt->execute()) {
     $conn->commit();
     // Lấy thông tin user đăng ký và sự kiện để tạo thông báo
-    $user_sql = "SELECT ho_ten FROM users WHERE id = ?";
+    $user_sql = "SELECT full_name FROM users WHERE id = ?";
     $user_stmt = $conn->prepare($user_sql);
     $user_stmt->bind_param("i", $user_id);
     $user_stmt->execute();
     $user_result = $user_stmt->get_result();
-    $user_name = $user_result->num_rows > 0 ? $user_result->fetch_assoc()['ho_ten'] : 'Một người dùng';
+    $user_name = $user_result->num_rows > 0 ? $user_result->fetch_assoc()['full_name'] : 'Một người dùng';
     $user_stmt->close();
     
-    // Đếm số lượng đã đăng ký (bao gồm cả chờ duyệt)
+    // Đếm số lượng đã đăng ký
     $count_registered_sql = "SELECT COUNT(*) as total FROM event_registrations WHERE event_id = ?";
     $count_stmt = $conn->prepare($count_registered_sql);
     $count_stmt->bind_param("i", $event_id);
@@ -175,16 +174,16 @@ if ($stmt->execute()) {
     
     $club_id = $event['club_id'];
     
-    // Lấy danh sách tất cả quản lý CLB (đội trưởng, admin và trưởng phòng ban)
+    // Lấy danh sách tất cả quản lý CLB (leader, vice_leader, head)
     $managers_sql = "SELECT DISTINCT user_id FROM (
-                        SELECT chu_nhiem_id as user_id FROM clubs WHERE id = ?
+                        SELECT leader_id as user_id FROM clubs WHERE id = ?
                         UNION
-                        SELECT user_id FROM club_members 
-                        WHERE club_id = ? AND trang_thai = 'dang_hoat_dong' 
-                        AND vai_tro IN ('doi_truong', 'doi_pho', 'truong_ban')
+                        SELECT user_id FROM members 
+                        WHERE club_id = ? AND status = 'active' 
+                        AND role IN ('leader', 'vice_leader', 'head')
                         UNION
-                        SELECT truong_phong_id as user_id FROM phong_ban 
-                        WHERE club_id = ? AND truong_phong_id IS NOT NULL
+                        SELECT head_id as user_id FROM departments 
+                        WHERE club_id = ? AND head_id IS NOT NULL
                     ) AS managers";
     $managers_stmt = $conn->prepare($managers_sql);
     $managers_stmt->bind_param("iii", $club_id, $club_id, $club_id);
@@ -196,9 +195,9 @@ if ($stmt->execute()) {
         $manager_id = $manager['user_id'];
         if ($manager_id != $user_id) {
             $notification_title = "Có người đăng ký tham gia sự kiện";
-            $notification_message = $user_name . " đã đăng ký tham gia sự kiện \"" . htmlspecialchars($event['ten_su_kien']) . "\" (Đã có " . $total_registered . " người đăng ký)";
+            $notification_message = $user_name . " đã đăng ký tham gia sự kiện \"" . htmlspecialchars($event['name']) . "\" (Đã có " . $total_registered . " người đăng ký)";
             $notification_link = "chi_tiet_su_kien.php?id=" . $event_id;
-            $notification_type = 'event_invite'; // Dùng event_invite để hiển thị ở tab "Sự kiện"
+            $notification_type = 'event';
             
             $insert_notification = "INSERT INTO notifications (user_id, type, title, message, link) 
                                    VALUES (?, ?, ?, ?, ?)";

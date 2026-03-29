@@ -77,4 +77,3 @@ if (!$shutdown_registered) {
     $shutdown_registered = true;
 }
 ?>
-

@@ -20,12 +20,12 @@ define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 // Database đang dùng: leaderclub (phù hợp môi trường hiện tại)
-define('DB_NAME', 'leaderclub');
+define('DB_NAME', 'uniqclub');
 define('DB_CHARSET', 'utf8mb4');
 
 // Application Configuration
-define('APP_NAME', 'LeaderClub');
-define('APP_URL', 'http://localhost/Student-Club-Management-System---NHOM-1');
+define('APP_NAME', 'uniQClub');
+define('APP_URL', 'http://localhost/Student-Club-and-Event-Administration-System-of-Quy-Nhon-University');
 define('APP_ENV', 'development'); // development, production
 
 // Security Configuration

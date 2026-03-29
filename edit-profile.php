@@ -26,22 +26,22 @@ $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $ho_ten = trim($_POST['ho_ten'] ?? '');
+    $full_name = trim($_POST['full_name'] ?? '');
     $email = trim($_POST['email'] ?? '');
-    $so_dien_thoai = trim($_POST['so_dien_thoai'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
     $student_id = trim($_POST['student_id'] ?? '');
-    $class = trim($_POST['class'] ?? '');
+    $class_name = trim($_POST['class_name'] ?? '');
     $faculty = trim($_POST['faculty'] ?? '');
-    $gender = $_POST['gender'] ?? 'khac';
+    $gender = $_POST['gender'] ?? 'other';
     
     // Validate
-    if (empty($ho_ten)) {
+    if (empty($full_name)) {
         $error_message = "Vui lòng nhập họ tên!";
     } elseif (empty($email)) {
         $error_message = "Vui lòng nhập email!";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error_message = "Email không hợp lệ!";
-    } elseif (!empty($so_dien_thoai) && !preg_match('/^0\d{9}$/', $so_dien_thoai)) {
+    } elseif (!empty($phone) && !preg_match('/^0\d{9}$/', $phone)) {
         $error_message = "Số điện thoại phải gồm 10 số và bắt đầu bằng 0.";
         $error_phone = $error_message;
     } elseif (!empty($student_id) && !preg_match('/^\d+$/', $student_id)) {
@@ -57,15 +57,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $error_message = "Email này đã được sử dụng!";
         } else {
             // Update thông tin
-            $sql = "UPDATE users SET ho_ten = ?, email = ?, so_dien_thoai = ?, student_id = ?, class = ?, faculty = ?, gender = ? WHERE id = ?";
+            $sql = "UPDATE users SET full_name = ?, email = ?, phone = ?, student_id = ?, class_name = ?, faculty = ?, gender = ? WHERE id = ?";
             $stmt = $conn->prepare($sql);
-            $stmt->bind_param("sssssssi", $ho_ten, $email, $so_dien_thoai, $student_id, $class, $faculty, $gender, $user_id);
+            $stmt->bind_param("sssssssi", $full_name, $email, $phone, $student_id, $class_name, $faculty, $gender, $user_id);
             
             if ($stmt->execute()) {
                 // Update session
-                $_SESSION['ho_ten'] = $ho_ten;
+                $_SESSION['full_name'] = $full_name;
                 $_SESSION['email'] = $email;
-                $_SESSION['so_dien_thoai'] = $so_dien_thoai;
+                $_SESSION['phone'] = $phone;
                 // Lấy avatar từ database để cập nhật session nếu có
                 $avatar_sql = "SELECT avatar FROM users WHERE id = ?";
                 $avatar_stmt = $conn->prepare($avatar_sql);
@@ -81,11 +81,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 
                 $success_message = "success";
                 // Reload user data
-                $user['ho_ten'] = $ho_ten;
+                $user['full_name'] = $full_name;
                 $user['email'] = $email;
-                $user['so_dien_thoai'] = $so_dien_thoai;
+                $user['phone'] = $phone;
                 $user['student_id'] = $student_id;
-                $user['class'] = $class;
+                $user['class_name'] = $class_name;
                 $user['faculty'] = $faculty;
                 $user['gender'] = $gender;
             } else {
@@ -119,34 +119,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
         <?php endif; ?>
 
-        <form method="POST" action="">
+        <form method="POST" action="" novalidate>
             <div class="form-row">
                 <div class="form-group">
-                    <label for="ho_ten">Họ và tên *</label>
-                    <input type="text" id="ho_ten" name="ho_ten" 
-                           value="<?php echo htmlspecialchars($user['ho_ten'] ?? ''); ?>" 
-                           placeholder="Nhập họ và tên" required>
+                    <label for="full_name">Họ và tên *</label>
+                    <input type="text" id="full_name" name="full_name" 
+                           value="<?php echo htmlspecialchars($user['full_name'] ?? ''); ?>" 
+                           placeholder="Nhập họ và tên">
                 </div>
 
                 <div class="form-group">
                     <label for="email">Email *</label>
                     <input type="email" id="email" name="email" 
                            value="<?php echo htmlspecialchars($user['email'] ?? ''); ?>" 
-                           placeholder="Nhập email" required>
+                           placeholder="Nhập email">
                 </div>
             </div>
 
             <div class="form-row">
             <div class="form-group">
-                <label for="so_dien_thoai">Số điện thoại</label>
-                <input type="tel" id="so_dien_thoai" name="so_dien_thoai" 
-                       value="<?php echo htmlspecialchars($user['so_dien_thoai'] ?? ''); ?>" 
+                <label for="phone">Số điện thoại</label>
+                <input type="tel" id="phone" name="phone" 
+                       value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>" 
                        placeholder="Nhập số điện thoại"
                        pattern="0\d{9}"
                        inputmode="tel">
-                <?php if (!empty($error_phone)): ?>
-                    <span class="error-text"><?php echo htmlspecialchars($error_phone); ?></span>
-                <?php endif; ?>
+
                 <small id="phone-helper" class="error-text" style="display:none;margin-top:4px;"></small>
             </div>
 
@@ -157,17 +155,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                        placeholder="Nhập mã sinh viên"
                        pattern="\d*"
                        inputmode="numeric">
-                <?php if (!empty($error_student_id)): ?>
-                    <span class="error-text"><?php echo htmlspecialchars($error_student_id); ?></span>
-                <?php endif; ?>
+                       
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="class">Lớp</label>
-                    <input type="text" id="class" name="class" 
-                           value="<?php echo htmlspecialchars($user['class'] ?? ''); ?>" 
+                    <label for="class_name">Lớp</label>
+                    <input type="text" id="class_name" name="class_name" 
+                           value="<?php echo htmlspecialchars($user['class_name'] ?? ''); ?>" 
                            placeholder="Nhập lớp">
                 </div>
 
@@ -183,18 +179,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <label>Giới tính</label>
                 <div class="radio-group">
                     <label class="radio-label">
-                        <input type="radio" name="gender" value="nam" 
-                               <?php echo ($user['gender'] ?? '') === 'nam' ? 'checked' : ''; ?>>
+                        <input type="radio" name="gender" value="male" 
+                               <?php echo ($user['gender'] ?? '') === 'male' ? 'checked' : ''; ?>>
                         <span>Nam</span>
                     </label>
                     <label class="radio-label">
-                        <input type="radio" name="gender" value="nu" 
-                               <?php echo ($user['gender'] ?? '') === 'nu' ? 'checked' : ''; ?>>
+                        <input type="radio" name="gender" value="female" 
+                               <?php echo ($user['gender'] ?? '') === 'female' ? 'checked' : ''; ?>>
                         <span>Nữ</span>
                     </label>
                     <label class="radio-label">
-                        <input type="radio" name="gender" value="khac" 
-                               <?php echo ($user['gender'] ?? 'khac') === 'khac' ? 'checked' : ''; ?>>
+                        <input type="radio" name="gender" value="other" 
+                               <?php echo ($user['gender'] ?? 'other') === 'other' ? 'checked' : ''; ?>>
                         <span>Khác</span>
                     </label>
                 </div>
@@ -221,69 +217,7 @@ if (isSuccess) {
     }
 }
 
-// Client-side validate phone number
-document.addEventListener('DOMContentLoaded', function() {
-    const phoneInput = document.getElementById('so_dien_thoai');
-    const phoneHelper = document.getElementById('phone-helper');
-    const studentInput = document.getElementById('student_id');
-    const studentHelper = document.createElement('small');
-    if (studentInput) {
-        studentHelper.className = 'error-text';
-        studentHelper.style.display = 'none';
-        studentHelper.style.marginTop = '4px';
-        studentInput.parentNode.appendChild(studentHelper);
-    }
-    const form = phoneInput ? phoneInput.closest('form') : null;
-    const msgInvalid = 'Số điện thoại phải có 10 số và bắt đầu bằng 0.';
-    const regex = /^0\d{9}$/;
-    const msgStudentInvalid = 'Mã sinh viên chỉ được chứa số.';
 
-    function validatePhone() {
-        if (!phoneInput || !phoneHelper) return true;
-        const val = phoneInput.value.trim();
-        if (!val) {
-            phoneHelper.style.display = 'none';
-            return true;
-        }
-        const ok = regex.test(val);
-        phoneHelper.textContent = ok ? '' : msgInvalid;
-        phoneHelper.style.display = ok ? 'none' : 'block';
-        return ok;
-    }
-
-    function validateStudent() {
-        if (!studentInput || !studentHelper) return true;
-        const val = studentInput.value.trim();
-        if (!val) {
-            studentHelper.style.display = 'none';
-            return true;
-        }
-        const ok = /^\d+$/.test(val);
-        studentHelper.textContent = ok ? '' : msgStudentInvalid;
-        studentHelper.style.display = ok ? 'none' : 'block';
-        return ok;
-    }
-
-    if (phoneInput) {
-        phoneInput.addEventListener('input', validatePhone);
-        phoneInput.addEventListener('blur', validatePhone);
-    }
-    if (studentInput) {
-        studentInput.addEventListener('input', validateStudent);
-        studentInput.addEventListener('blur', validateStudent);
-    }
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            const phoneOk = validatePhone();
-            const stuOk = validateStudent();
-            if (!phoneOk || !stuOk) {
-                e.preventDefault();
-                if (!phoneOk && phoneInput) phoneInput.focus();
-                else if (!stuOk && studentInput) studentInput.focus();
-            }
-        });
-    }
-});
 </script>
 
 <?php

@@ -18,28 +18,28 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $current_user_id = $_SESSION['user_id'];
-$club_member_id = isset($_POST['club_member_id']) ? (int)$_POST['club_member_id'] : 0;
-$vai_tro = isset($_POST['vai_tro']) ? trim($_POST['vai_tro']) : '';
-$phong_ban_id = isset($_POST['phong_ban_id']) && $_POST['phong_ban_id'] !== '' ? (int)$_POST['phong_ban_id'] : null;
+$member_id = isset($_POST['member_id']) ? (int)$_POST['member_id'] : 0;
+$role = isset($_POST['role']) ? trim($_POST['role']) : '';
+$department_id = isset($_POST['department_id']) && $_POST['department_id'] !== '' ? (int)$_POST['department_id'] : null;
 
 // Validate input
-if ($club_member_id <= 0 || $vai_tro === '') {
+if ($member_id <= 0 || $role === '') {
     json_response(['success' => false, 'message' => 'Thiếu thông tin bắt buộc'], HttpStatus::BAD_REQUEST);
 }
 
-// Validate role
-$valid_roles = [UserRole::DOI_TRUONG, UserRole::DOI_PHO, UserRole::TRUONG_BAN, UserRole::THANH_VIEN, UserRole::CHU_NHIEM, UserRole::PHO_CHU_NHIEM];
-if (!in_array($vai_tro, $valid_roles)) {
+// Validate role (các giá trị role mới)
+$valid_roles = ['leader', 'vice_leader', 'head', 'member'];
+if (!in_array($role, $valid_roles)) {
     json_response(['success' => false, 'message' => 'Vai trò không hợp lệ'], HttpStatus::BAD_REQUEST);
 }
 
-// Lấy thông tin thành viên và CLB
-$get_member = "SELECT cm.club_id, cm.user_id, cm.vai_tro 
-               FROM club_members cm 
-               WHERE cm.id = ?";
+// Lấy thông tin thành viên và CLB từ bảng members
+$get_member = "SELECT m.club_id, m.user_id, m.role 
+               FROM members m 
+               WHERE m.id = ?";
 
 if ($stmt = $conn->prepare($get_member)) {
-    $stmt->bind_param("i", $club_member_id);
+    $stmt->bind_param("i", $member_id);
     $stmt->execute();
     $result = $stmt->get_result();
     
@@ -49,73 +49,81 @@ if ($stmt = $conn->prepare($get_member)) {
     
     $member_data = $result->fetch_assoc();
     $club_id = $member_data['club_id'];
-    $member_role = $member_data['vai_tro'];
+    $current_role = $member_data['role'];
     $stmt->close();
 } else {
     json_response(['success' => false, 'message' => 'Lỗi truy vấn database'], HttpStatus::INTERNAL_ERROR);
 }
 
-// Kiểm tra quyền (chỉ đội trưởng mới được sửa)
-$check_owner = $conn->prepare("SELECT chu_nhiem_id FROM clubs WHERE id = ?");
+// Kiểm tra quyền (chỉ leader mới được sửa)
+$check_owner = $conn->prepare("SELECT leader_id FROM clubs WHERE id = ?");
 $check_owner->bind_param("i", $club_id);
 $check_owner->execute();
 $owner = $check_owner->get_result()->fetch_assoc();
 $check_owner->close();
 
-if (!$owner || $owner['chu_nhiem_id'] != $current_user_id) {
+if (!$owner || $owner['leader_id'] != $current_user_id) {
     json_response(['success' => false, 'message' => 'Bạn không có quyền thực hiện thao tác này'], HttpStatus::FORBIDDEN);
 }
 
-// Không cho phép thay đổi vai trò của đội trưởng (trừ khi chuyển sang vai trò khác)
-if (in_array($member_role, [UserRole::DOI_TRUONG, UserRole::CHU_NHIEM]) && $vai_tro !== UserRole::DOI_TRUONG && $vai_tro !== UserRole::CHU_NHIEM) {
-    json_response(['success' => false, 'message' => 'Không thể thay đổi vai trò của đội trưởng CLB'], HttpStatus::FORBIDDEN);
+// Không cho phép thay đổi vai trò của leader (trừ khi chuyển sang vai trò khác)
+if ($current_role === 'leader' && $role !== 'leader') {
+    json_response(['success' => false, 'message' => 'Không thể thay đổi vai trò của leader CLB'], HttpStatus::FORBIDDEN);
 }
 
-// Nếu phòng ban được chọn, kiểm tra phòng ban thuộc CLB
-if ($phong_ban_id !== null && $phong_ban_id > 0) {
-    $check_pb = $conn->prepare("SELECT id FROM phong_ban WHERE id = ? AND club_id = ?");
-    $check_pb->bind_param("ii", $phong_ban_id, $club_id);
-    $check_pb->execute();
-    $pb_result = $check_pb->get_result();
-    $check_pb->close();
+// Nếu phòng ban được chọn, kiểm tra phòng ban thuộc CLB từ bảng departments
+if ($department_id !== null && $department_id > 0) {
+    $check_dept = $conn->prepare("SELECT id FROM departments WHERE id = ? AND club_id = ?");
+    $check_dept->bind_param("ii", $department_id, $club_id);
+    $check_dept->execute();
+    $dept_result = $check_dept->get_result();
+    $check_dept->close();
     
-    if ($pb_result->num_rows === 0) {
+    if ($dept_result->num_rows === 0) {
         json_response(['success' => false, 'message' => 'Phòng ban không hợp lệ'], HttpStatus::BAD_REQUEST);
     }
 }
 
 // Đảm bảo 1 user chỉ có 1 chức vụ trong 1 CLB
-// Nếu gán vai trò cao (doi_truong, doi_pho) thì xóa trưởng phòng ban
-if (in_array($vai_tro, [UserRole::DOI_TRUONG, UserRole::DOI_PHO, UserRole::CHU_NHIEM, UserRole::PHO_CHU_NHIEM])) {
-    // Xóa trưởng phòng ban nếu user đang là trưởng phòng ban
-    $remove_truong_ban = $conn->prepare("UPDATE phong_ban SET truong_phong_id = NULL WHERE club_id = ? AND truong_phong_id = ?");
-    $remove_truong_ban->bind_param("ii", $club_id, $member_data['user_id']);
-    $remove_truong_ban->execute();
-    $remove_truong_ban->close();
+// Nếu gán vai trò cao (leader, vice_leader) thì xóa head của phòng ban
+if (in_array($role, ['leader', 'vice_leader'])) {
+    // Xóa head nếu user đang là head của phòng ban
+    $remove_head = $conn->prepare("UPDATE departments SET head_id = NULL WHERE club_id = ? AND head_id = ?");
+    $remove_head->bind_param("ii", $club_id, $member_data['user_id']);
+    $remove_head->execute();
+    $remove_head->close();
 }
 
-// Nếu gán vai trò trưởng ban, đảm bảo không phải là đội trưởng hoặc đội phó
-if ($vai_tro === UserRole::TRUONG_BAN) {
-    // Nếu user đang là đội trưởng hoặc đội phó, không cho phép
-    if (in_array($member_role, [UserRole::DOI_TRUONG, UserRole::DOI_PHO, UserRole::CHU_NHIEM, UserRole::PHO_CHU_NHIEM])) {
-        json_response(['success' => false, 'message' => 'Không thể gán trưởng ban cho đội trưởng/đội phó. Vui lòng chuyển về thành viên trước.'], HttpStatus::BAD_REQUEST);
+// Nếu gán vai trò head, đảm bảo không phải là leader hoặc vice_leader
+if ($role === 'head') {
+    // Nếu user đang là leader hoặc vice_leader, không cho phép
+    if (in_array($current_role, ['leader', 'vice_leader'])) {
+        json_response(['success' => false, 'message' => 'Không thể gán head cho leader/vice_leader. Vui lòng chuyển về member trước.'], HttpStatus::BAD_REQUEST);
     }
 }
 
-// Cập nhật vai trò và phòng ban
-if ($phong_ban_id !== null && $phong_ban_id > 0) {
-    $stmt = $conn->prepare("UPDATE club_members SET vai_tro = ?, phong_ban_id = ? WHERE id = ? AND club_id = ?");
-    $stmt->bind_param("siii", $vai_tro, $phong_ban_id, $club_member_id, $club_id);
+// Cập nhật vai trò và phòng ban trong bảng members
+if ($department_id !== null && $department_id > 0) {
+    $stmt = $conn->prepare("UPDATE members SET role = ?, department_id = ? WHERE id = ? AND club_id = ?");
+    $stmt->bind_param("siii", $role, $department_id, $member_id, $club_id);
 } else {
     // Nếu không chọn phòng ban, chỉ cập nhật vai trò
-    $stmt = $conn->prepare("UPDATE club_members SET vai_tro = ? WHERE id = ? AND club_id = ?");
-    $stmt->bind_param("sii", $vai_tro, $club_member_id, $club_id);
+    $stmt = $conn->prepare("UPDATE members SET role = ? WHERE id = ? AND club_id = ?");
+    $stmt->bind_param("sii", $role, $member_id, $club_id);
 }
 
 $result = $stmt->execute();
 $stmt->close();
 
 if ($result) {
+    // Nếu cập nhật thành leader, cập nhật leader_id trong clubs
+    if ($role === 'leader') {
+        $update_club = $conn->prepare("UPDATE clubs SET leader_id = ? WHERE id = ?");
+        $update_club->bind_param("ii", $member_data['user_id'], $club_id);
+        $update_club->execute();
+        $update_club->close();
+    }
+    
     json_response(['success' => true, 'message' => 'Cập nhật thành công'], HttpStatus::OK);
 } else {
     json_response(['success' => false, 'message' => 'Có lỗi xảy ra khi cập nhật'], HttpStatus::INTERNAL_ERROR);

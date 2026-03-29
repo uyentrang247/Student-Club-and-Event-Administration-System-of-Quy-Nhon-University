@@ -35,12 +35,12 @@ if (!$is_admin) {
     $mode = 'view';
 }
 
-// Lấy tất cả ảnh (join media_library để lấy file_path)
-$sql = "SELECT cg.*, ml.file_path AS image_url
-        FROM club_gallery cg
-        LEFT JOIN media_library ml ON cg.media_id = ml.id
-        WHERE cg.club_id = ?
-        ORDER BY cg.uploaded_at DESC";
+// Lấy tất cả ảnh (join media để lấy path)
+$sql = "SELECT g.*, m.path AS image_url
+        FROM gallery g
+        LEFT JOIN media m ON g.media_id = m.id
+        WHERE g.club_id = ?
+        ORDER BY g.uploaded_at DESC";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $club_id);
 $stmt->execute();
@@ -85,7 +85,7 @@ load_header();
                 <a href="club-detail.php?id=<?= $club_id ?>" class="back-btn">← Quay lại</a>
             <?php endif; ?>
             <h1>📸 Thư viện ảnh <?= $mode === 'manage' ? '- Quản lý' : '' ?></h1>
-            <p class="club-name"><?= htmlspecialchars($club['ten_clb']) ?></p>
+            <p class="club-name"><?= htmlspecialchars($club['name']) ?></p>
         </div>
         <?php if ($is_admin && $mode === 'manage'): ?>
         <button class="btn-upload" onclick="openUploadModal()">
