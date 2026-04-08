@@ -9,6 +9,14 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
     exit;
 }
 
+// Hàm tạo slug từ chuỗi
+function create_slug($string) {
+    $string = strtolower($string);
+    $string = preg_replace('/[^a-z0-9\s-]/', '', $string);
+    $string = preg_replace('/[\s-]+/', '-', $string);
+    return trim($string, '-');
+}
+
 $message = null;
 $message_type = 'success';
 if (isset($_SESSION['flash_events'])) {
@@ -19,7 +27,6 @@ if (isset($_SESSION['flash_events'])) {
 
 // Xử lý thêm/sửa/xóa
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Bảo vệ CSRF cho toàn bộ thao tác quản trị sự kiện
     $csrf_token = $_POST[CSRF_TOKEN_NAME] ?? '';
     if (!verify_csrf_token($csrf_token)) {
         $message = 'Phiên làm việc không hợp lệ, vui lòng thử lại.';
@@ -54,16 +61,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = 'Hạn đăng ký phải trước thời gian bắt đầu sự kiện.';
             $message_type = 'error';
         } else {
+            // Tạo slug từ tên sự kiện
+            $slug = create_slug($name);
+            
+            // Kiểm tra slug đã tồn tại chưa, nếu rồi thì thêm số
+            $check_slug = $conn->prepare("SELECT COUNT(*) as count FROM events WHERE slug = ?");
+            $check_slug->bind_param("s", $slug);
+            $check_slug->execute();
+            $count = $check_slug->get_result()->fetch_assoc()['count'];
+            $check_slug->close();
+            
+            if ($count > 0) {
+                $slug = $slug . '-' . time();
+            }
+            
             if ($action === 'create') {
-                $stmt = $conn->prepare("INSERT INTO events (club_id, name, short_desc, location, start_time, end_time, max_participants, reg_deadline, status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt = $conn->prepare("INSERT INTO events (club_id, name, slug, short_desc, location, start_time, end_time, max_participants, reg_deadline, status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $created_by = $_SESSION['admin_id'] ?? 0;
-                $stmt->bind_param("issssssssi", $club_id, $name, $short_desc, $location, $start_time, $end_time, $max_participants, $reg_deadline, $status, $created_by);
+                $stmt->bind_param("isssssssssi", $club_id, $name, $slug, $short_desc, $location, $start_time, $end_time, $max_participants, $reg_deadline, $status, $created_by);
+                
                 if ($stmt->execute()) {
                     $_SESSION['flash_events'] = ['message' => 'Thêm sự kiện thành công.', 'type' => 'success'];
                     header('Location: events.php');
                     exit;
                 } else {
-                    $message = 'Lỗi khi thêm sự kiện.';
+                    $message = 'Lỗi khi thêm sự kiện: ' . $stmt->error;
                     $message_type = 'error';
                 }
                 $stmt->close();
@@ -72,14 +94,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $message = 'Thiếu thông tin sự kiện.';
                     $message_type = 'error';
                 } else {
-                    $stmt = $conn->prepare("UPDATE events SET club_id=?, name=?, short_desc=?, location=?, start_time=?, end_time=?, max_participants=?, reg_deadline=?, status=? WHERE id=?");
-                    $stmt->bind_param("issssssssi", $club_id, $name, $short_desc, $location, $start_time, $end_time, $max_participants, $reg_deadline, $status, $id);
+                    $stmt = $conn->prepare("UPDATE events SET club_id=?, name=?, slug=?, short_desc=?, location=?, start_time=?, end_time=?, max_participants=?, reg_deadline=?, status=? WHERE id=?");
+                    $stmt->bind_param("isssssssssi", $club_id, $name, $slug, $short_desc, $location, $start_time, $end_time, $max_participants, $reg_deadline, $status, $id);
+                    
                     if ($stmt->execute()) {
                         $_SESSION['flash_events'] = ['message' => 'Cập nhật sự kiện thành công.', 'type' => 'success'];
                         header('Location: events.php');
                         exit;
                     } else {
-                        $message = 'Lỗi khi cập nhật sự kiện.';
+                        $message = 'Lỗi khi cập nhật sự kiện: ' . $stmt->error;
                         $message_type = 'error';
                     }
                     $stmt->close();
@@ -172,7 +195,6 @@ foreach ($events as &$evt) {
         $start = !empty($evt['start_time']) ? new DateTime($evt['start_time']) : null;
         $end   = !empty($evt['end_time']) ? new DateTime($evt['end_time']) : null;
 
-        // Ưu tiên nếu sự kiện đã hủy thì giữ nguyên
         if ($current_status === 'cancelled') {
             $target_status = 'cancelled';
         } elseif ($end && $now >= $end) {
@@ -183,7 +205,6 @@ foreach ($events as &$evt) {
             $target_status = 'upcoming';
         }
 
-        // Đồng bộ DB để tránh trạng thái hiển thị lệch
         if ($target_status !== $current_status) {
             $evt['status'] = $target_status;
             $update_stmt = $conn->prepare("UPDATE events SET status = ? WHERE id = ?");
@@ -194,7 +215,6 @@ foreach ($events as &$evt) {
             }
         }
     } catch (Exception $e) {
-        // Nếu parse thời gian lỗi, bỏ qua cập nhật
         continue;
     }
 }
@@ -253,11 +273,11 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                             <?= csrf_token_input(); ?>
                             <input type="hidden" name="action" value="create">
                             <div class="form-group">
-                                <label>Tên sự kiện</label>
+                                <label>Tên sự kiện *</label>
                                 <input type="text" name="name" required>
                             </div>
                             <div class="form-group">
-                                <label>Câu lạc bộ</label>
+                                <label>Câu lạc bộ *</label>
                                 <select name="club_id" required>
                                     <option value="">-- Chọn CLB --</option>
                                     <?php foreach ($clubs as $club): ?>
@@ -295,7 +315,7 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                                 </select>
                             </div>
                             <div class="form-group" style="grid-column:1/-1;">
-                                <label>Mô tả</label>
+                                <label>Mô tả ngắn</label>
                                 <textarea name="short_desc" rows="3" placeholder="Giới thiệu ngắn về sự kiện"></textarea>
                             </div>
                             <div class="form-actions">
@@ -307,7 +327,7 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                 </div>
             </div>
 
-            <!-- Modal chỉnh sửa -->
+            <!-- Modal chỉnh sửa sự kiện -->
             <?php if ($edit_event): ?>
             <div class="modal open" id="editEventModal">
                 <div class="modal-dialog">
@@ -321,11 +341,11 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                             <input type="hidden" name="action" value="update">
                             <input type="hidden" name="id" value="<?= $edit_event['id'] ?>">
                             <div class="form-group">
-                                <label>Tên sự kiện</label>
+                                <label>Tên sự kiện *</label>
                                 <input type="text" name="name" value="<?= htmlspecialchars($edit_event['name']) ?>" required>
                             </div>
                             <div class="form-group">
-                                <label>Câu lạc bộ</label>
+                                <label>Câu lạc bộ *</label>
                                 <select name="club_id" required>
                                     <option value="">-- Chọn CLB --</option>
                                     <?php foreach ($clubs as $club): ?>
@@ -363,7 +383,7 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                                 </select>
                             </div>
                             <div class="form-group" style="grid-column:1/-1;">
-                                <label>Mô tả</label>
+                                <label>Mô tả ngắn</label>
                                 <textarea name="short_desc" rows="3"><?= htmlspecialchars($edit_event['short_desc'] ?? '') ?></textarea>
                             </div>
                             <div class="form-actions">
@@ -430,7 +450,7 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                                 <td><?= date('d/m/Y', strtotime($event['created_at'])) ?></td>
                                 <td>
                                     <div class="action-buttons">
-                                        <a href="../chi_tiet_su_kien.php?id=<?= $event['id'] ?>" class="btn-icon btn-view" title="Xem">
+                                        <a href="../chi_tiet_su_kien.php?id=<?= $event['id'] ?>" class="btn-icon btn-view" title="Xem" target="_blank">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                                 <circle cx="12" cy="12" r="3"></circle>
@@ -505,7 +525,7 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
         if (btnCloseEdit && editModal) btnCloseEdit.addEventListener('click', () => closeModal(editModal));
         if (editModal) {
             editModal.addEventListener('click', (e) => { if (e.target === editModal) closeModal(editModal); });
-            openModal(editModal); // mở sẵn khi có edit_id
+            openModal(editModal);
         }
     })();
     </script>

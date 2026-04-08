@@ -17,6 +17,14 @@ if (isset($_SESSION['flash_clubs'])) {
     unset($_SESSION['flash_clubs']);
 }
 
+// Hàm tạo slug
+function create_slug($string) {
+    $string = strtolower($string);
+    $string = preg_replace('/[^a-z0-9\s-]/', '', $string);
+    $string = preg_replace('/[\s-]+/', '-', $string);
+    return trim($string, '-');
+}
+
 // Xử lý thêm/sửa/xóa
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -35,31 +43,119 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = 'Vui lòng nhập tên CLB và lĩnh vực.';
             $message_type = 'error';
         } else {
+            // Xử lý upload logo
+            $logo_id = null;
+            if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
+                $upload_result = upload_file($_FILES['logo'], CLUB_LOGO_DIR, 'clb_logo_');
+                if ($upload_result['success']) {
+                    $filePathRelative = str_replace(APP_ROOT . '/', '', $upload_result['path']);
+                    $stmtMedia = $conn->prepare("INSERT INTO media (path, uploader_id) VALUES (?, ?)");
+                    $stmtMedia->bind_param("si", $filePathRelative, $_SESSION['admin_id']);
+                    if ($stmtMedia->execute()) {
+                        $logo_id = $conn->insert_id;
+                    }
+                    $stmtMedia->close();
+                }
+            }
+
+            // Xử lý upload banner
+            $banner_id = null;
+            if (isset($_FILES['banner']) && $_FILES['banner']['error'] === UPLOAD_ERR_OK) {
+                $upload_result = upload_file($_FILES['banner'], CLUB_BANNER_DIR, 'clb_banner_');
+                if ($upload_result['success']) {
+                    $filePathRelative = str_replace(APP_ROOT . '/', '', $upload_result['path']);
+                    $stmtMedia = $conn->prepare("INSERT INTO media (path, uploader_id) VALUES (?, ?)");
+                    $stmtMedia->bind_param("si", $filePathRelative, $_SESSION['admin_id']);
+                    if ($stmtMedia->execute()) {
+                        $banner_id = $conn->insert_id;
+                    }
+                    $stmtMedia->close();
+                }
+            }
+
             if ($action === 'create') {
-                $stmt = $conn->prepare("INSERT INTO clubs (name, description, category, total_members, color, founded_date, leader_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("sssissi", $name, $description, $category, $total_members, $color, $founded_date, $leader_id);
+                // Tạo slug
+                $slug = create_slug($name);
+                
+                // Thêm vào clubs
+                $stmt = $conn->prepare("INSERT INTO clubs (name, slug, description, category, total_members, color, founded_date, leader_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')");
+                $stmt->bind_param("ssssissi", $name, $slug, $description, $category, $total_members, $color, $founded_date, $leader_id);
+                
                 if ($stmt->execute()) {
+                    $club_id = $conn->insert_id;
+                    
+                    // Thêm vào pages (quan trọng: lưu logo_id và banner_id)
+                    $stmt_page = $conn->prepare("INSERT INTO pages (club_id, logo_id, banner_id, is_public) VALUES (?, ?, ?, 1)");
+                    $stmt_page->bind_param("iii", $club_id, $logo_id, $banner_id);
+                    $stmt_page->execute();
+                    $stmt_page->close();
+                    
                     $_SESSION['flash_clubs'] = ['message' => 'Thêm CLB thành công.', 'type' => 'success'];
                     header('Location: clubs.php');
                     exit;
                 } else {
-                    $message = 'Lỗi khi thêm CLB.';
+                    $message = 'Lỗi khi thêm CLB: ' . $stmt->error;
                     $message_type = 'error';
                 }
                 $stmt->close();
+                
             } elseif ($action === 'update') {
                 if ($id <= 0) {
                     $message = 'Thiếu thông tin CLB.';
                     $message_type = 'error';
                 } else {
+                    // Cập nhật clubs
                     $stmt = $conn->prepare("UPDATE clubs SET name=?, description=?, category=?, total_members=?, color=?, founded_date=?, leader_id=? WHERE id=?");
                     $stmt->bind_param("sssissii", $name, $description, $category, $total_members, $color, $founded_date, $leader_id, $id);
+                    
                     if ($stmt->execute()) {
+                        // Cập nhật pages (logo và banner)
+                        // Kiểm tra xem đã có bản ghi trong pages chưa
+                        $checkPage = $conn->prepare("SELECT id FROM pages WHERE club_id = ?");
+                        $checkPage->bind_param("i", $id);
+                        $checkPage->execute();
+                        $pageExists = $checkPage->get_result()->num_rows > 0;
+                        $checkPage->close();
+                        
+                        if ($pageExists) {
+                            // Update existing
+                            $updateFields = [];
+                            $params = [];
+                            $types = '';
+                            
+                            if ($logo_id !== null) {
+                                $updateFields[] = "logo_id = ?";
+                                $params[] = $logo_id;
+                                $types .= 'i';
+                            }
+                            if ($banner_id !== null) {
+                                $updateFields[] = "banner_id = ?";
+                                $params[] = $banner_id;
+                                $types .= 'i';
+                            }
+                            
+                            if (!empty($updateFields)) {
+                                $params[] = $id;
+                                $types .= 'i';
+                                $sqlPage = "UPDATE pages SET " . implode(", ", $updateFields) . " WHERE club_id = ?";
+                                $stmtPage = $conn->prepare($sqlPage);
+                                $stmtPage->bind_param($types, ...$params);
+                                $stmtPage->execute();
+                                $stmtPage->close();
+                            }
+                        } else {
+                            // Insert new
+                            $stmtPage = $conn->prepare("INSERT INTO pages (club_id, logo_id, banner_id, is_public) VALUES (?, ?, ?, 1)");
+                            $stmtPage->bind_param("iii", $id, $logo_id, $banner_id);
+                            $stmtPage->execute();
+                            $stmtPage->close();
+                        }
+                        
                         $_SESSION['flash_clubs'] = ['message' => 'Cập nhật CLB thành công.', 'type' => 'success'];
                         header('Location: clubs.php');
                         exit;
                     } else {
-                        $message = 'Lỗi khi cập nhật CLB.';
+                        $message = 'Lỗi khi cập nhật CLB: ' . $stmt->error;
                         $message_type = 'error';
                     }
                     $stmt->close();
@@ -139,11 +235,11 @@ $stmt->close();
 // Danh sách leader
 $leaders = $conn->query("SELECT id, full_name, username FROM users ORDER BY full_name ASC")->fetch_all(MYSQLI_ASSOC);
 
-// CLB đang chỉnh sửa
+// CLB đang chỉnh sửa (lấy cả logo_id và banner_id từ pages)
 $edit_club = null;
 if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
     $edit_id = (int)$_GET['edit_id'];
-    $stmt = $conn->prepare("SELECT * FROM clubs WHERE id = ?");
+    $stmt = $conn->prepare("SELECT c.*, p.logo_id, p.banner_id FROM clubs c LEFT JOIN pages p ON c.id = p.club_id WHERE c.id = ?");
     $stmt->bind_param("i", $edit_id);
     $stmt->execute();
     $edit_club = $stmt->get_result()->fetch_assoc();
@@ -157,6 +253,27 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản lý Câu lạc bộ - Admin Panel</title>
     <link rel="stylesheet" href="../assets/css/admin/admin.css">
+    <style>
+        .image-preview {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+        .image-upload-group {
+            margin-bottom: 15px;
+        }
+        .image-upload-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .modal-lg {
+            max-width: 800px;
+            width: 90%;
+        }
+    </style>
 </head>
 <body>
     <?php include 'includes/sidebar.php'; ?>
@@ -182,20 +299,21 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
 
             <!-- Modal thêm CLB -->
             <div class="modal" id="createClubModal">
-                <div class="modal-dialog">
+                <div class="modal-dialog modal-lg">
                     <div class="modal-header">
                         <h3>Thêm Câu lạc bộ</h3>
                         <button type="button" class="modal-close" id="btnCloseCreateClub">&times;</button>
                     </div>
                     <div class="modal-body">
-                        <form method="POST" class="form-grid">
+                        <form method="POST" class="form-grid" enctype="multipart/form-data">
                             <input type="hidden" name="action" value="create">
+                            
                             <div class="form-group">
-                                <label>Tên CLB</label>
+                                <label>Tên CLB *</label>
                                 <input type="text" name="name" required>
                             </div>
                             <div class="form-group">
-                                <label>Lĩnh vực</label>
+                                <label>Lĩnh vực *</label>
                                 <input type="text" name="category" required>
                             </div>
                             <div class="form-group">
@@ -219,6 +337,21 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                                 <label>Màu hiển thị</label>
                                 <input type="color" name="color" value="#667eea">
                             </div>
+                            
+                            <!-- Upload Logo -->
+                            <div class="image-upload-group">
+                                <label>Logo CLB</label>
+                                <input type="file" name="logo" accept="image/*" onchange="previewImage(this, 'logoPreviewCreate')">
+                                <img id="logoPreviewCreate" class="image-preview" style="display:none;">
+                            </div>
+                            
+                            <!-- Upload Banner -->
+                            <div class="image-upload-group">
+                                <label>Banner CLB</label>
+                                <input type="file" name="banner" accept="image/*" onchange="previewImage(this, 'bannerPreviewCreate')">
+                                <img id="bannerPreviewCreate" class="image-preview" style="display:none;">
+                            </div>
+                            
                             <div class="form-group" style="grid-column:1/-1;">
                                 <label>Mô tả</label>
                                 <textarea name="description" rows="3" placeholder="Giới thiệu ngắn về CLB"></textarea>
@@ -235,21 +368,22 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
             <!-- Modal chỉnh sửa CLB -->
             <?php if ($edit_club): ?>
             <div class="modal open" id="editClubModal">
-                <div class="modal-dialog">
+                <div class="modal-dialog modal-lg">
                     <div class="modal-header">
                         <h3>Chỉnh sửa: <?= htmlspecialchars($edit_club['name']) ?></h3>
                         <button type="button" class="modal-close" id="btnCloseEditClub">&times;</button>
                     </div>
                     <div class="modal-body">
-                        <form method="POST" class="form-grid">
+                        <form method="POST" class="form-grid" enctype="multipart/form-data">
                             <input type="hidden" name="action" value="update">
                             <input type="hidden" name="id" value="<?= $edit_club['id'] ?>">
+                            
                             <div class="form-group">
-                                <label>Tên CLB</label>
+                                <label>Tên CLB *</label>
                                 <input type="text" name="name" value="<?= htmlspecialchars($edit_club['name']) ?>" required>
                             </div>
                             <div class="form-group">
-                                <label>Lĩnh vực</label>
+                                <label>Lĩnh vực *</label>
                                 <input type="text" name="category" value="<?= htmlspecialchars($edit_club['category']) ?>" required>
                             </div>
                             <div class="form-group">
@@ -275,9 +409,24 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                                 <label>Màu hiển thị</label>
                                 <input type="color" name="color" value="<?= htmlspecialchars($edit_club['color'] ?? '#667eea') ?>">
                             </div>
+                            
+                            <!-- Upload Logo -->
+                            <div class="image-upload-group">
+                                <label>Logo CLB (để trống nếu không đổi)</label>
+                                <input type="file" name="logo" accept="image/*" onchange="previewImage(this, 'logoPreviewEdit')">
+                                <img id="logoPreviewEdit" class="image-preview" style="display:none;">
+                            </div>
+                            
+                            <!-- Upload Banner -->
+                            <div class="image-upload-group">
+                                <label>Banner CLB (để trống nếu không đổi)</label>
+                                <input type="file" name="banner" accept="image/*" onchange="previewImage(this, 'bannerPreviewEdit')">
+                                <img id="bannerPreviewEdit" class="image-preview" style="display:none;">
+                            </div>
+                            
                             <div class="form-group" style="grid-column:1/-1;">
                                 <label>Mô tả</label>
-                                <textarea name="description" rows="3" placeholder="Giới thiệu ngắn về CLB"><?= htmlspecialchars($edit_club['description'] ?? '') ?></textarea>
+                                <textarea name="description" rows="3"><?= htmlspecialchars($edit_club['description'] ?? '') ?></textarea>
                             </div>
                             <div class="form-actions">
                                 <button type="submit" class="btn-primary">Lưu thay đổi</button>
@@ -335,7 +484,7 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
                                 <td><?= date('d/m/Y', strtotime($club['created_at'])) ?></td>
                                 <td>
                                     <div class="action-buttons">
-                                        <a href="../club-detail.php?id=<?= $club['id'] ?>" class="btn-icon btn-view" title="Xem">
+                                        <a href="../club-detail.php?id=<?= $club['id'] ?>" class="btn-icon btn-view" title="Xem" target="_blank">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                                 <circle cx="12" cy="12" r="3"></circle>
@@ -391,6 +540,20 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
     
     <script src="../assets/js/admin.js"></script>
     <script>
+    function previewImage(input, previewId) {
+        const preview = document.getElementById(previewId);
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            }
+            reader.readAsDataURL(input.files[0]);
+        } else {
+            preview.style.display = 'none';
+        }
+    }
+    
     (function() {
         const createModal = document.getElementById('createClubModal');
         const btnOpenCreate = document.getElementById('btnOpenCreateClub');
@@ -409,11 +572,9 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
         if (btnCloseEdit && editModal) btnCloseEdit.addEventListener('click', () => closeModal(editModal));
         if (editModal) {
             editModal.addEventListener('click', (e) => { if (e.target === editModal) closeModal(editModal); });
-            // mở sẵn khi có edit_id
             openModal(editModal);
         }
     })();
     </script>
 </body>
 </html>
-

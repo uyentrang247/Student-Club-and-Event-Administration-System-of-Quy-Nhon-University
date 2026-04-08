@@ -70,8 +70,6 @@ try {
             if (!empty($club_page['primary_color'] ?? null)) {
                 $club['color'] = $club_page['primary_color'];
             }
-            // Website và social links được lấy từ club_contacts (có priority cao hơn)
-            // Nên không merge từ club_pages nữa
         }
     }
 } catch (Exception $e) {
@@ -97,11 +95,9 @@ try {
         if (!empty($contact_data['phone'])) {
             $club['phone'] = $contact_data['phone'];
         }
-        // Website từ club_contacts có priority cao hơn club_pages
         if (!empty($contact_data['website'])) {
             $club['website'] = $contact_data['website'];
         }
-        // Social links từ club_contacts có priority cao hơn club_pages
         if (!empty($contact_data['facebook'])) {
             $club['facebook'] = $contact_data['facebook'];
         }
@@ -132,6 +128,25 @@ $stmt->execute();
 $member_count = $stmt->get_result()->fetch_assoc()['total'];
 $stmt->close();
 
+// ===== THỐNG KÊ SỰ KIỆN - TÍNH TRỰC TIẾP TỪ BẢNG EVENTS =====
+$event_count_sql = "SELECT COUNT(*) as total FROM events WHERE club_id = ?";
+$event_stmt = $conn->prepare($event_count_sql);
+$event_stmt->bind_param("i", $club_id);
+$event_stmt->execute();
+$event_count_result = $event_stmt->get_result();
+$total_events = 0;
+if ($event_count_result && $event_count_result->num_rows > 0) {
+    $total_events = (int)$event_count_result->fetch_assoc()['total'];
+}
+$event_stmt->close();
+
+// Gán vào stats (giữ cấu trúc cũ để code không bị lỗi)
+$stats = [
+    'total_events' => $total_events,
+    'rating' => 0.0
+];
+// ====================================================
+
 // Kiểm tra user có phải leader không
 $is_owner = ($club['leader_id'] == $user_id);
 
@@ -160,25 +175,6 @@ try {
     $members = null;
 }
 
-// Lấy thống kê CLB
-$stats = ['total_events' => 0, 'rating' => 0.0];
-try {
-    $sql = "SELECT * FROM stats WHERE club_id = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $club_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($result->num_rows > 0) {
-        $stats = $result->fetch_assoc();
-    } else {
-        // Debug: Nếu không có data, thử insert mẫu
-        error_log("No stats found for club_id: " . $club_id);
-    }
-} catch (Exception $e) {
-    // Nếu bảng chưa tồn tại, dùng giá trị mặc định
-    error_log("Error loading stats: " . $e->getMessage());
-}
-
 // Lấy danh sách sự kiện sắp tới (3 events)
 $events = [];
 try {
@@ -199,7 +195,6 @@ $event_participants = [];
 if ($events && $events->num_rows > 0) {
     $events->data_seek(0);
     while ($event = $events->fetch_assoc()) {
-        // Đếm tất cả lượt đăng ký (không phụ thuộc trạng thái) để hiển thị đúng số người đã đăng ký
         $sql = "SELECT COUNT(*) as total FROM event_registrations WHERE event_id = ?";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("i", $event['id']);
@@ -247,19 +242,15 @@ try {
     <!-- Cover Image -->
     <div class="club-cover">
         <?php 
-        // Kiểm tra banner từ club_pages trước, sau đó mới đến clubs
         $banner_display = null;
         
-        // Ưu tiên banner từ club_pages
         if (!empty($club_page['banner_path'] ?? null)) {
             $banner_path = trim($club_page['banner_path']);
-            // Kiểm tra cả đường dẫn tương đối và tuyệt đối
             if (file_exists($banner_path) || file_exists(__DIR__ . '/' . $banner_path)) {
                 $banner_display = $banner_path;
             }
         }
         
-        // Nếu không có từ club_pages, thử từ clubs
         if (!$banner_display && !empty($club['banner_url'] ?? null)) {
             $banner_path = trim($club['banner_url']);
             if (file_exists($banner_path) || file_exists(__DIR__ . '/' . $banner_path)) {
@@ -268,14 +259,12 @@ try {
         }
         
         if ($banner_display): 
-            // Thêm timestamp để tránh cache
             $banner_url = htmlspecialchars($banner_display);
             $banner_url .= '?v=' . time();
         ?>
             <img src="<?php echo $banner_url; ?>" 
                  alt="Cover" onerror="this.style.display='none'; console.error('Banner not found: <?php echo $banner_url; ?>');">
         <?php else: ?>
-            <!-- Debug: Hiển thị thông tin nếu không có banner -->
             <?php if (isset($_GET['debug'])): ?>
                 <div style="padding: 20px; background: #f0f0f0;">
                     <p>Club Page Banner: <?php echo htmlspecialchars($club_page['banner_path'] ?? 'NULL'); ?></p>
@@ -290,7 +279,6 @@ try {
     <div class="club-header">
         <div class="club-header-content">
             <?php
-            // Kiểm tra logo từ club_pages trước, sau đó mới đến clubs
             $logo_display = null;
             if (!empty($club_page['logo_path'] ?? null) && file_exists($club_page['logo_path'])) {
                 $logo_display = $club_page['logo_path'];
@@ -307,7 +295,6 @@ try {
             ?>
             <div class="club-badge" style="<?php echo !empty($logo_display) ? 'background: white; padding: 8px;' : 'background: ' . htmlspecialchars($club['color'] ?? '#667eea') . ';'; ?>">
                 <?php if (!empty($logo_display)): 
-                    // Thêm timestamp để tránh cache
                     $logo_url = htmlspecialchars($logo_display);
                     $logo_url .= '?v=' . time();
                 ?>
@@ -327,6 +314,7 @@ try {
                 <div class="club-stats">
                     <span>👥 <?php echo $member_count; ?> thành viên</span>
                     <span>📅 Thành lập <?php echo date('Y', strtotime($club['founded_date'] ?? 'now')); ?></span>
+                    <span>📅 <?php echo $total_events; ?> sự kiện</span>
                 </div>
             </div>
             <div class="club-actions">
@@ -357,8 +345,6 @@ try {
                     <?php echo nl2br(htmlspecialchars($club['description'] ?? 'Chưa có mô tả')); ?>
                 </p>
             </div>
-
-
 
             <!-- Activities Section -->
             <div class="section-card">
@@ -447,7 +433,6 @@ try {
                         $index++;
                         endwhile; 
                     else: 
-                        // Hiển thị placeholder nếu chưa có ảnh
                         for ($i = 0; $i < 4; $i++):
                     ?>
                         <a href="club-gallery.php?id=<?= $club_id ?>&mode=view" class="gallery-item" style="background: <?php echo $gradients[$i]; ?>;">
@@ -466,7 +451,6 @@ try {
 
         <!-- Sidebar -->
         <div class="content-sidebar">
-
 
             <!-- Contact Card -->
             <div class="sidebar-card">
@@ -536,6 +520,10 @@ try {
                         <span class="label">Trạng thái:</span>
                         <span class="value status-active">Đang hoạt động</span>
                     </div>
+                    <div class="info-item">
+                        <span class="label">Sự kiện:</span>
+                        <span class="value"><?php echo $total_events; ?></span>
+                    </div>
                 </div>
             </div>
 
@@ -544,7 +532,6 @@ try {
                 <h3>🔗 Mạng xã hội</h3>
                 <div class="social-links">
                     <?php 
-                    // Lấy social links từ $club (đã được merge từ club_contacts)
                     $facebook = $club['facebook'] ?? null;
                     $instagram = $club['instagram'] ?? null;
                     $twitter = $club['twitter'] ?? null;
@@ -617,26 +604,26 @@ try {
 
 <script>
 function joinClub(clubId) {
-    // Gọi function từ join_request.js để mở modal
+
     if (typeof openJoinModal === 'function') {
         openJoinModal(clubId);
     } else {
-        // Fallback nếu file JS chưa load
+
         alert('Đang tải form đăng ký...');
         window.location.href = 'popup_join.php?club_id=' + clubId;
     }
 }
 
 function joinEvent(eventId) {
-    // Gọi function từ join_request.js để mở modal sự kiện
+
     if (typeof openEventModal === 'function') {
         openEventModal(eventId);
     } else {
-        // Fallback: sử dụng AJAX để load popup
+
         fetch('popup_joinevent.php?event_id=' + eventId)
             .then(response => response.text())
             .then(html => {
-                // Tạo modal container nếu chưa có
+
                 let container = document.getElementById('eventModalContainer');
                 if (!container) {
                     container = document.createElement('div');
@@ -656,16 +643,16 @@ function joinEvent(eventId) {
     }
 }
 
-// Đóng modal khi click outside (nếu chưa có trong join_request.js)
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Đảm bảo modal container tồn tại
+
     if (!document.getElementById('modalContainer')) {
         const container = document.createElement('div');
         container.id = 'modalContainer';
         document.body.appendChild(container);
     }
     
-    // Đảm bảo event modal container tồn tại
+    
     if (!document.getElementById('eventModalContainer')) {
         const container = document.createElement('div');
         container.id = 'eventModalContainer';
