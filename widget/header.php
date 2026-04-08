@@ -45,13 +45,14 @@
             <?php
             // Lấy avatar từ session trước, nếu không có thì query database
             $avatar = $_SESSION['avatar'] ?? '';
+            $full_name = $_SESSION['full_name'] ?? $_SESSION['username'] ?? 'User';
 
             // Nếu không có trong session, query từ database và cập nhật session
             if (empty($avatar)) {
                 global $conn;
                 if (isset($conn) && $conn instanceof mysqli) {
                     $user_id = $_SESSION['user_id'];
-                    $sql = "SELECT avatar FROM users WHERE id = ?";
+                    $sql = "SELECT avatar, full_name FROM users WHERE id = ?";
                     $stmt = $conn->prepare($sql);
                     if ($stmt) {
                         $stmt->bind_param("i", $user_id);
@@ -59,8 +60,10 @@
                         $result = $stmt->get_result();
                         $user_data = $result->fetch_assoc();
                         $avatar = $user_data['avatar'] ?? '';
+                        $full_name = $user_data['full_name'] ?? $full_name;
                         // Cập nhật session để tránh query lại lần sau
                         $_SESSION['avatar'] = $avatar;
+                        $_SESSION['full_name'] = $full_name;
                         $stmt->close();
                     }
                 }
@@ -136,10 +139,10 @@
                     ?>
                         <img src="<?php echo $avatar_url; ?>" alt="Avatar">
                     <?php else: ?>
-                        <span><?php echo htmlspecialchars(strtoupper(substr($_SESSION['ho_ten'] ?? 'U', 0, 1)), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <span><?php echo htmlspecialchars(strtoupper(substr($full_name, 0, 1)), ENT_QUOTES, 'UTF-8'); ?></span>
                     <?php endif; ?>
                 </div>
-                <span class="user-name"><?php echo htmlspecialchars($_SESSION['ho_ten'] ?? 'User', ENT_QUOTES, 'UTF-8'); ?></span>
+                <span class="user-name"><?php echo htmlspecialchars($full_name, ENT_QUOTES, 'UTF-8'); ?></span>
 
                 <div class="dropdown-menu profile-dropdown">
                     <a href="profile.php" class="dropdown-item">

@@ -1,12 +1,12 @@
 .myclub-wrapper {
     min-height: 100vh;
-    background: #618ff1;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     padding-top: 60px;
 }
 
 /* Hero Section */
 .hero-section {
-    background: #618ff1;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%);
     padding: 60px 20px;
     text-align: center;
     position: relative;
@@ -25,13 +25,8 @@
 }
 
 @keyframes float {
-    from {
-        transform: translateY(0);
-    }
-
-    to {
-        transform: translateY(-100px);
-    }
+    from { transform: translateY(0); }
+    to { transform: translateY(-100px); }
 }
 
 .hero-content {
@@ -54,15 +49,8 @@
 }
 
 @keyframes pulse {
-
-    0%,
-    100% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.05);
-    }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
 }
 
 .hero-title {
@@ -109,24 +97,15 @@
     opacity: 0;
 }
 
-.stat-card:nth-child(1) {
-    animation-delay: 0.1s;
-}
-
-.stat-card:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.stat-card:nth-child(3) {
-    animation-delay: 0.3s;
-}
+.stat-card:nth-child(1) { animation-delay: 0.1s; }
+.stat-card:nth-child(2) { animation-delay: 0.2s; }
+.stat-card:nth-child(3) { animation-delay: 0.3s; }
 
 @keyframes slideUp {
     from {
         opacity: 0;
         transform: translateY(30px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
@@ -156,8 +135,8 @@
     margin: 0;
 }
 
-.stat-card-action { 
-    background: linear-gradient(135deg, #4126d6 0%, #2735f8 100%);
+.stat-card-action {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     cursor: pointer;
     padding: 0;
     overflow: hidden;
@@ -223,7 +202,6 @@
         opacity: 0;
         transform: scale(0.95);
     }
-
     to {
         opacity: 1;
         transform: scale(1);
@@ -319,9 +297,7 @@
     flex-wrap: wrap;
 }
 
-.btn-primary,
-.btn-secondary,
-.btn-members {
+.btn-primary, .btn-secondary, .btn-members {
     flex: 1;
     min-width: 100px;
     display: flex;
@@ -402,8 +378,7 @@
     flex-wrap: wrap;
 }
 
-.btn-create-primary,
-.btn-explore {
+.btn-create-primary, .btn-explore {
     display: inline-flex;
     align-items: center;
     gap: 10px;
@@ -443,26 +418,26 @@
     .hero-title {
         font-size: 36px;
     }
-
+    
     .stats-section {
         grid-template-columns: 1fr;
     }
-
+    
     .club-grid {
         grid-template-columns: 1fr;
     }
-
+    
     .empty-state {
         padding: 60px 30px;
     }
-
+    
     .empty-actions {
         flex-direction: column;
     }
-
-    .btn-create-primary,
-    .btn-explore {
+    
+    .btn-create-primary, .btn-explore {
         width: 100%;
         justify-content: center;
     }
 }
+ 

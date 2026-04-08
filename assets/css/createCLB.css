@@ -1,6 +1,6 @@
 .create-club-wrapper {
     min-height: 100vh;
-    background: #6e9cff;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     padding: 80px 20px 60px;
     display: flex;
     align-items: center;
@@ -22,7 +22,6 @@
         opacity: 0;
         transform: translateY(30px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
@@ -31,7 +30,7 @@
 
 /* Form Header */
 .form-header {
-    background: #3146ff;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     padding: 40px 30px;
     text-align: center;
     color: white;
@@ -237,32 +236,32 @@
     .create-club-wrapper {
         padding: 70px 15px 40px;
     }
-
+    
     .create-club-container {
         border-radius: 20px;
     }
-
+    
     .form-header {
         padding: 30px 20px;
     }
-
+    
     .form-header h2 {
         font-size: 26px;
     }
-
+    
     .create-form {
         padding: 30px 20px;
     }
-
+    
     .form-row {
         grid-template-columns: 1fr;
         gap: 0;
     }
-
+    
     .form-actions {
         flex-direction: column;
     }
-
+    
     .logo-preview-section {
         padding: 20px;
     }
