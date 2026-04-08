@@ -1,0 +1,11 @@
+[2026-04-01 04:37:11] User registered: Mihtahm05 {"ip":"::1"}
+[2026-04-01 04:38:41] User login successful: Mihtahm05 {"ip":"::1"}
+[2026-04-01 04:39:16] User logout: Mihtahm05 {"ip":"::1"}
+[2026-04-01 04:41:04] User registered: Mihtahm05 {"ip":"::1"}
+[2026-04-01 04:41:35] User login successful: Mihtahm05 {"ip":"::1"}
+[2026-04-01 04:44:01] User created club: Câu lạc bộ tình nguyện {"user_id":3,"club_id":1}
+[2026-04-01 15:06:58] Database connection error: Connection failed: No connection could be made because the target machine actively refused it 
+[2026-04-01 15:07:05] Database connection error: Connection failed: No connection could be made because the target machine actively refused it 
+[2026-04-01 15:07:09] Database connection error: Connection failed: No connection could be made because the target machine actively refused it 
+[2026-04-01 15:07:53] User login successful: Mihtahm05 {"ip":"::1"}
+[2026-04-01 20:31:25] User login successful: Mihtahm05 {"ip":"::1"}

@@ -1,0 +1,388 @@
+/* ====== RESET & BASE ====== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.dash-contain {
+    width: 90%;
+    max-width: 1400px;
+    margin: auto;
+    padding: 30px 0 80px;
+    animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ====== HEADER ====== */
+.dash-head {
+    margin-top: 90px;
+    margin-bottom: 30px;
+}
+
+.dashboard-title {
+    display: flex;
+    align-items: center;
+    font-size: 42px;
+    font-weight: 700;
+    color: #667eea;
+}
+
+.back-arrow {
+    cursor: pointer;
+    margin-right: 15px;
+    font-weight: 700;
+    color: #667eea;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+
+.back-arrow:hover {
+    transform: translateX(-5px);
+    color: #764ba2;
+}
+
+/* ====== INTRO SECTION ====== */
+.dash-intro {
+    margin-bottom: 30px;
+    padding: 25px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.title-main {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #2d3748;
+}
+
+.title-sub {
+    font-size: 16px;
+    color: #4a5568;
+    line-height: 1.6;
+    margin-bottom: 8px;
+}
+
+/* ====== CLUB INFO CARD ====== */
+.club-info-card {
+    display: flex;
+    gap: 25px;
+    padding: 30px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    margin-top: 25px;
+    border: 2px solid rgba(102, 126, 234, 0.1);
+    transition: all 0.3s ease;
+}
+
+.club-info-card:hover {
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+    transform: translateY(-3px);
+}
+
+.club-logo {
+    flex-shrink: 0;
+    width: 150px;
+    height: 150px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+}
+
+.club-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.no-logo {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.no-logo i {
+    font-size: 48px;
+    margin-bottom: 8px;
+}
+
+.no-logo p {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.club-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.club-details h3 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 10px;
+}
+
+.club-slogan {
+    font-size: 16px;
+    font-style: italic;
+    color: #667eea;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.club-desc {
+    font-size: 15px;
+    color: #4a5568;
+    line-height: 1.6;
+}
+
+/* ====== WARNING BOX ====== */
+.warn-box {
+    background: linear-gradient(135deg, #fff5e6 0%, #ffe8cc 100%);
+    border-left: 6px solid #ff9800;
+    margin-top: 25px;
+    padding: 20px 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.15);
+    animation: slideInLeft 0.5s ease-out;
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.alert-txt p {
+    color: #d84315;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ====== TASK CARDS ====== */
+.task-group {
+    margin-top: 35px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+}
+
+.box {
+    padding: 30px;
+    border-radius: 20px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.box:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+}
+
+.box:hover::before {
+    opacity: 1;
+}
+
+.info-add,
+.page-add,
+.member-add {
+    background: #618ff1;
+}
+
+.box h3 {
+    font-size: 24px;
+    margin-bottom: 12px;
+    font-weight: 700;
+    color: #ffffff;
+    position: relative;
+    z-index: 1;
+}
+
+.box p {
+    font-size: 15px;
+    margin-bottom: 25px;
+    color: rgba(233, 231, 231, 0.9);
+    line-height: 1.5;
+    position: relative;
+    z-index: 1;
+}
+
+.box button {
+    padding: 12px 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 15px;
+    transition: all 0.3s ease;
+    color: #2d3748;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    position: relative;
+    z-index: 2;
+}
+
+.box button:hover {
+    background: #fff;
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+/* ====== THIẾT LẬP LẠI KHUNG CHÍNH ====== */
+.dash-main {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    /* 3 cột bằng chằn chặn */
+    gap: 25px;
+    margin-top: 40px;
+    align-items: stretch;
+    /* Ép các thẻ cao bằng nhau */
+}
+
+/* ====== STYLE CHUNG CHO MỖI THẺ (CARD) ====== */
+.event-sect,
+.attendance-sect,
+.member-list {
+    background: #fff;
+    border-radius: 25px;
+    padding: 40px 25px;
+    /* Tăng padding để nội dung thở được */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.event-sect {
+    background: #618ff1;
+}
+
+.attendance-sect {
+    background: #618ff1;
+}
+
+.member-list {
+    background: #618ff1;
+}
+
+/* Tiêu đề */
+.dash-main h2 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 12px;
+}
+
+/* Văn bản mô tả */
+.empty-txt p {
+    font-size: 14px;
+    color: #ffffff;
+    margin-bottom: 25px;
+    min-height: 40px;
+    /* Giữ khoảng cách văn bản luôn bằng nhau */
+}
+
+/* ====== NÚT BẤM (BUTTONS) ====== */
+/* Nút chính (Tạo mới) - Gradient rực rỡ */
+
+.taosk {
+    width: 100%;
+    max-width: 220px;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    color: rgb(48, 38, 38);
+    font-size: 15.5px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-bottom: 15px;
+}
+
+.taosk:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Nút phụ (Xem danh sách/Báo cáo) */
+.xemsk,
+.view_members {
+    font-size: 15.5px;
+    width: 100%;
+    max-width: 220px;
+    padding: 12px;
+    background: white;
+    border: 2px solid #ffffff;
+    border-radius: 12px;
+    color: #292828;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: 0 !important;
+    /* Xóa margin-left cũ */
+}
+
+.xemsk:hover,
+.view_members:hover {
+    background: #ffffff;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* ====== MOBILE ====== */
+@media (max-width: 992px) {
+    .dash-main {
+        grid-template-columns: 1fr;
+    }
+
+    /* Chuyển thành 1 cột trên điện thoại */
+}
