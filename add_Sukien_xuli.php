@@ -46,6 +46,30 @@ $reg_deadline   = $_POST['reg_deadline'] ?? '';
 // GÁN TRẠNG THÁI MẶC ĐỊNH
 $status = 'upcoming';
 
+// === TẠO SLUG TỪ TÊN SỰ KIỆN ===
+function create_slug($string) {
+    $string = strtolower($string);
+    $string = preg_replace('/[^a-z0-9\s-]/', '', $string);
+    $string = preg_replace('/[\s-]+/', '-', $string);
+    return trim($string, '-');
+}
+
+$slug = create_slug($name);
+if (empty($slug)) {
+    $slug = 'event-' . time();
+}
+
+// Kiểm tra slug đã tồn tại chưa, nếu rồi thì thêm số
+$check_slug = $conn->prepare("SELECT COUNT(*) as count FROM events WHERE slug = ?");
+$check_slug->bind_param("s", $slug);
+$check_slug->execute();
+$count = $check_slug->get_result()->fetch_assoc()['count'];
+$check_slug->close();
+
+if ($count > 0) {
+    $slug = $slug . '-' . time();
+}
+
 /**
  * Chuẩn hóa datetime-local về định dạng MySQL (Y-m-d H:i:s)
  */
@@ -134,12 +158,12 @@ if ($stmtMedia->execute()) {
 }
 $stmtMedia->close();
 
-// === 6. INSERT vào DB với cấu trúc mới ===
+// === 6. INSERT vào DB với cấu trúc mới (có slug) ===
 $sql = "INSERT INTO events (
-            club_id, name, short_desc, full_desc, cover_id,
+            club_id, name, slug, short_desc, full_desc, cover_id,
             location, start_time, end_time,
             max_participants, reg_deadline, status, created_by, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
 $stmt = $conn->prepare($sql);
 if (!$stmt) {
@@ -155,9 +179,10 @@ if (!$stmt) {
 }
 
 $stmt->bind_param(
-    "issssssssisi",
+    "isssssssssisi",
     $club_id,           // i
     $name,              // s
+    $slug,              // s
     $short_desc,        // s
     $full_desc,         // s
     $cover_id,          // i
