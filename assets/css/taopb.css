@@ -3,8 +3,8 @@
 /* Variables */
 :root {
     --primary: #667eea;
-    --primary-dark: #5568d3;
-    --secondary: #764ba2;
+    --primary-dark: #618ff1;
+    --secondary: #6799db 100%;
     --success: #48bb78;
     --danger: #f56565;
     --warning: #ed8936;
@@ -163,7 +163,7 @@ body {
 
 /* Hero Card */
 .hero-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     border-radius: 20px;
     padding: 40px;
     display: flex;
@@ -423,7 +423,7 @@ body {
 }
 
 .role.president {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }

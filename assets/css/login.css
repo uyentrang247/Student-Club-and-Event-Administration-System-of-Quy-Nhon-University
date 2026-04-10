@@ -38,7 +38,7 @@
 }
 
 body {
-    background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #4facfe);
+    background: linear-gradient(-45deg, #667eea, #477ab8, #4050ab, #4facfe);
     background-size: 400% 400%;
     animation: gradient 15s ease infinite;
     min-height: 100vh;
@@ -105,7 +105,7 @@ body::before {
 
 h1 {
     text-align: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 12px;
@@ -223,7 +223,7 @@ input[type="password"]::-webkit-contacts-auto-fill-button {
 
 .login-btn {
     width: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
     border: none;
     padding: 16px;

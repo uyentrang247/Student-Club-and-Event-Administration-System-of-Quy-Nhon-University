@@ -4,7 +4,7 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/functions.php';
 
 // NOW start session
-    session_start();
+session_start();
 
 // Thêm header để tránh cache
 header("Cache-Control: no-cache, must-revalidate");
@@ -128,7 +128,7 @@ $stmt->execute();
 $member_count = $stmt->get_result()->fetch_assoc()['total'];
 $stmt->close();
 
-// ===== THỐNG KÊ SỰ KIỆN - TÍNH TRỰC TIẾP TỪ BẢNG EVENTS =====
+// THỐNG KÊ SỰ KIỆN - TÍNH TRỰC TIẾP TỪ BẢNG EVENTS
 $event_count_sql = "SELECT COUNT(*) as total FROM events WHERE club_id = ?";
 $event_stmt = $conn->prepare($event_count_sql);
 $event_stmt->bind_param("i", $club_id);
@@ -145,7 +145,7 @@ $stats = [
     'total_events' => $total_events,
     'rating' => 0.0
 ];
-// ====================================================
+
 
 // Kiểm tra user có phải leader không
 $is_owner = ($club['leader_id'] == $user_id);
@@ -175,12 +175,19 @@ try {
     $members = null;
 }
 
-// Lấy danh sách sự kiện sắp tới (3 events)
+// ===== SỬA: Lấy 3 sự kiện gần nhất (bao gồm tất cả status) =====
 $events = [];
 try {
     $sql = "SELECT * FROM events 
-            WHERE club_id = ? AND status = 'upcoming' AND start_time >= NOW()
-            ORDER BY start_time ASC
+            WHERE club_id = ? 
+            ORDER BY 
+                CASE 
+                    WHEN status = 'ongoing' THEN 1
+                    WHEN status = 'upcoming' THEN 2
+                    WHEN status = 'completed' THEN 3
+                    ELSE 4
+                END,
+                start_time DESC
             LIMIT 3";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $club_id);
@@ -222,17 +229,37 @@ try {
     $gallery = null;
 }
 
-// Lấy hoạt động gần đây (3 activities)
+// Lấy hoạt động từ bảng activities
 $activities = [];
 try {
-    $sql = "SELECT * FROM activities 
-            WHERE club_id = ?
-            ORDER BY created_at DESC
-            LIMIT 3";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $club_id);
-    $stmt->execute();
-    $activities = $stmt->get_result();
+    // Kiểm tra bảng activities có tồn tại không
+    $table_check = $conn->query("SHOW TABLES LIKE 'activities'");
+    if ($table_check && $table_check->num_rows > 0) {
+        // Lấy từ bảng activities
+        $sql = "SELECT type, description, created_at 
+                FROM activities 
+                WHERE club_id = ? 
+                ORDER BY created_at DESC 
+                LIMIT 10";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("i", $club_id);
+        $stmt->execute();
+        $activities = $stmt->get_result();
+    } else {
+        // Fallback: lấy từ events nếu chưa có bảng activities
+        $sql = "SELECT 
+                    'event' as type,
+                    CONCAT('📅 Tạo sự kiện: ', name) as description,
+                    created_at
+                FROM events 
+                WHERE club_id = ? 
+                ORDER BY created_at DESC 
+                LIMIT 10";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("i", $club_id);
+        $stmt->execute();
+        $activities = $stmt->get_result();
+    }
 } catch (Exception $e) {
     $activities = null;
 }
@@ -368,11 +395,11 @@ try {
                 </div>
             </div>
 
-            <!-- Upcoming Events -->
+            <!-- ===== ĐÃ SỬA: Tất cả sự kiện (hiển thị 3 cái gần nhất) ===== -->
             <div class="section-card">
                 <div class="section-header">
-                    <h2>📅 Sự kiện sắp tới</h2>
-                    <a href="#" class="view-all">Xem tất cả →</a>
+                    <h2>📅 Tất cả sự kiện</h2>
+                    <a href="club-events.php?id=<?php echo $club_id; ?>" class="view-all">Xem tất cả →</a>
                 </div>
                 <div class="events-list">
                     <?php if ($events && $events->num_rows > 0): ?>
@@ -382,6 +409,32 @@ try {
                             $end_date = new DateTime($event['end_time']);
                             $end_time = $end_date->format('H:i');
                             $participants = $event_participants[$event['id']] ?? 0;
+                            
+                            // Badge trạng thái
+                            $status_badge = '';
+                            $btn_text = 'Xem chi tiết';
+                            $btn_class = 'btn-event-view';
+                            
+                            switch($event['status']) {
+                                case 'upcoming':
+                                    $status_badge = '<span class="status-badge status-upcoming">🟢 Sắp diễn ra</span>';
+                                    $btn_text = 'Tham gia';
+                                    $btn_class = 'btn-event-join';
+                                    break;
+                                case 'ongoing':
+                                    $status_badge = '<span class="status-badge status-ongoing">🔵 Đang diễn ra</span>';
+                                    break;
+                                case 'completed':
+                                    $status_badge = '<span class="status-badge status-completed">⚫ Đã kết thúc</span>';
+                                    break;
+                                case 'cancelled':
+                                    $status_badge = '<span class="status-badge status-cancelled">🔴 Đã hủy</span>';
+                                    break;
+                                default:
+                                    $status_badge = '<span class="status-badge status-upcoming">🟢 Sắp diễn ra</span>';
+                                    $btn_text = 'Tham gia';
+                                    $btn_class = 'btn-event-join';
+                            }
                         ?>
                         <div class="event-card">
                             <div class="event-date">
@@ -389,19 +442,22 @@ try {
                                 <div class="date-month">Th<?php echo $event_date->format('m'); ?></div>
                             </div>
                             <div class="event-info">
-                                <h4><?php echo htmlspecialchars($event['name']); ?></h4>
+                                <h4>
+                                    <?php echo htmlspecialchars($event['name']); ?>
+                                    <?php echo $status_badge; ?>
+                                </h4>
                                 <p>🕐 <?php echo $start_time; ?> - <?php echo $end_time; ?> | 📍 <?php echo htmlspecialchars($event['location'] ?? 'Chưa xác định'); ?></p>
                                 <div class="event-participants">
-                                    <span>👥 <?php echo $participants; ?> người tham gia</span>
+                                    <span>👥 <?php echo $participants; ?> / <?php echo $event['max_participants'] ?? '∞'; ?> người</span>
                                 </div>
                             </div>
-                            <a class="btn-event-join" href="chi_tiet_su_kien.php?id=<?php echo $event['id']; ?>">
-                                Tham gia
+                            <a class="<?php echo $btn_class; ?>" href="chi_tiet_su_kien.php?id=<?php echo $event['id']; ?>">
+                                <?php echo $btn_text; ?> →
                             </a>
                         </div>
                         <?php endwhile; ?>
                     <?php else: ?>
-                        <p style="text-align: center; color: #718096; padding: 40px;">Chưa có sự kiện sắp tới</p>
+                        <p style="text-align: center; color: #718096; padding: 40px;">CLB chưa có sự kiện nào</p>
                     <?php endif; ?>
                 </div>
             </div>
@@ -566,28 +622,50 @@ try {
                 <div class="timeline">
                     <?php if ($activities && $activities->num_rows > 0): ?>
                         <?php while ($activity = $activities->fetch_assoc()): 
-                            $activity_date = new DateTime($activity['created_at']);
-                            $now = new DateTime();
-                            $diff = $now->diff($activity_date);
-                            
-                            if ($diff->d == 0 && $diff->h < 24) {
-                                $time_ago = $diff->h . ' giờ trước';
-                            } elseif ($diff->d == 1) {
-                                $time_ago = '1 ngày trước';
+                            $time_field = $activity['created_at'] ?? null;
+                            if (!empty($time_field) && $time_field != '0000-00-00 00:00:00') {
+                                $activity_date = new DateTime($time_field);
+                                $now = new DateTime();
+                                $diff = $now->diff($activity_date);
+                                
+                                if ($diff->d == 0 && $diff->h == 0) {
+                                    $time_ago = $diff->i . ' phút trước';
+                                } elseif ($diff->d == 0) {
+                                    $time_ago = $diff->h . ' giờ trước';
+                                } elseif ($diff->d == 1) {
+                                    $time_ago = '1 ngày trước';
+                                } else {
+                                    $time_ago = $diff->d . ' ngày trước';
+                                }
                             } else {
-                                $time_ago = $diff->d . ' ngày trước';
+                                $time_ago = 'Vừa xong';
+                            }
+                            
+                            $icon = '📌';
+                            switch($activity['type']) {
+                                case 'event':
+                                case 'event_created':
+                                    $icon = '📅';
+                                    break;
+                                case 'new_member':
+                                case 'member_joined':
+                                    $icon = '👤';
+                                    break;
+                                case 'achievement':
+                                    $icon = '🏆';
+                                    break;
                             }
                         ?>
                         <div class="timeline-item">
                             <div class="timeline-dot"></div>
                             <div class="timeline-content">
-                                <p><strong><?php echo htmlspecialchars($activity['description']); ?></strong></p>
-                                <span><?php echo $time_ago; ?></span>
+                                <p><?php echo $icon; ?> <strong><?php echo htmlspecialchars($activity['description']); ?></strong></p>
+                                <span class="time-ago"><?php echo $time_ago; ?></span>
                             </div>
                         </div>
                         <?php endwhile; ?>
                     <?php else: ?>
-                        <p style="text-align: center; color: #718096; padding: 20px;">Chưa có hoạt động gần đây</p>
+                        <p style="text-align: center; color: #718096; padding: 20px;">Chưa có hoạt động nào</p>
                     <?php endif; ?>
                 </div>
             </div>
@@ -602,29 +680,30 @@ try {
 <script src="assets/js/join_request.js"></script>
 <script src="assets/js/popup_join_validation.js"></script>
 
+
 <script>
 function joinClub(clubId) {
-
-    if (typeof openJoinModal === 'function') {
+    
+if (typeof openJoinModal === 'function') {
         openJoinModal(clubId);
     } else {
-
-        alert('Đang tải form đăng ký...');
+       
+    alert('Đang tải form đăng ký...');
         window.location.href = 'popup_join.php?club_id=' + clubId;
     }
 }
 
 function joinEvent(eventId) {
-
-    if (typeof openEventModal === 'function') {
+    
+if (typeof openEventModal === 'function') {
         openEventModal(eventId);
     } else {
-
-        fetch('popup_joinevent.php?event_id=' + eventId)
+        
+    fetch('popup_joinevent.php?event_id=' + eventId)
             .then(response => response.text())
             .then(html => {
-
-                let container = document.getElementById('eventModalContainer');
+                
+            let container = document.getElementById('eventModalContainer');
                 if (!container) {
                     container = document.createElement('div');
                     container.id = 'eventModalContainer';
@@ -645,8 +724,8 @@ function joinEvent(eventId) {
 
 
 document.addEventListener('DOMContentLoaded', function() {
-
-    if (!document.getElementById('modalContainer')) {
+    
+if (!document.getElementById('modalContainer')) {
         const container = document.createElement('div');
         container.id = 'modalContainer';
         document.body.appendChild(container);

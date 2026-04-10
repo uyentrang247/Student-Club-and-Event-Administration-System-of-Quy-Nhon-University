@@ -62,7 +62,7 @@
     width: 64px;
     height: 64px;
     margin: 0 auto 16px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     border-radius: 16px;
     display: flex;
     align-items: center;
@@ -133,7 +133,7 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
     display: flex;
     align-items: center;
@@ -161,7 +161,7 @@
 .current-role-badge {
     display: inline-block;
     padding: 4px 10px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
     border-radius: 12px;
     font-size: 12px;
@@ -287,7 +287,7 @@
 
 .role-option:hover .role-option-icon,
 .role-option.selected .role-option-icon {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     transform: scale(1.1) rotate(5deg);
 }
 
@@ -382,7 +382,7 @@
 }
 
 .btn-save-edit {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }

@@ -15,7 +15,7 @@ body {
     width: 100%;
     height: 350px;
     overflow: hidden;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     border-radius: 0 0 30px 30px;
 }
 
@@ -74,7 +74,7 @@ body {
 .club-category {
     display: inline-block;
     padding: 8px 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
     border-radius: 25px;
     font-size: 13px;
@@ -126,7 +126,7 @@ body {
 }
 
 .btn-join {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
     box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
 }
@@ -204,7 +204,7 @@ body {
     text-align: center;
     padding: 30px 20px;
     border-radius: 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -469,7 +469,7 @@ body {
 .event-date {
     text-align: center;
     padding: 15px 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     border-radius: 15px;
     color: white;
     min-width: 80px;
@@ -514,7 +514,7 @@ body {
 
 .btn-event-join {
     padding: 10px 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
     border: none;
     border-radius: 12px;
@@ -623,7 +623,7 @@ body {
 
 /* Quick Actions */
 .action-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%) !important;
     color: white;
 }
 
@@ -730,7 +730,7 @@ body {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     flex-shrink: 0;
     margin-top: 3px;
     box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
@@ -769,7 +769,7 @@ body {
 
 @media (max-width: 768px) {
     body {
-        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     }
     
     .club-cover {
@@ -879,7 +879,7 @@ body {
 
 /* View Members Button */
 .btn-view-members {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
     border: none;
     padding: 12px 24px;
@@ -897,4 +897,69 @@ body {
 .btn-view-members:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.timeline-content .time-ago {
+    font-size: 11px;
+    color: #999;
+    display: block;
+    margin-top: 4px;
+}
+
+/* Status badges cho sự kiện */
+.status-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-left: 10px;
+    font-weight: normal;
+    display: inline-block;
+}
+
+.status-upcoming {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-ongoing {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.status-completed {
+    background: #f5f5f5;
+    color: #616161;
+}
+
+.status-cancelled {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.btn-event-join, .btn-event-view {
+    padding: 8px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: all 0.3s;
+}
+
+.btn-event-join {
+    background: #667eea;
+    color: white;
+}
+
+.btn-event-join:hover {
+    background: #5a67d8;
+}
+
+.btn-event-view {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.btn-event-view:hover {
+    background: #e0e0e0;
 }

@@ -9,14 +9,15 @@
     to { opacity: 1; }
 }
 
-/* ===== CONTAINER ===== */
+/* ===== CONTAINER CHÍNH ===== */
 .contain {
     min-height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg,#89b8f5 100%);
     padding: 120px 20px 40px 20px;
     animation: fadeIn 0.8s ease-out;
 }
 
+/* ===== FORM THÊM SỰ KIỆN ===== */
 .contain-add-sk { 
     width: 92%;
     max-width: 900px;
@@ -34,7 +35,7 @@
     margin: 0 0 40px;
     font-size: 36px;
     font-weight: 800;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #6799db 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -78,7 +79,7 @@ label {
     margin: 15px 0 5px;
     font-size: 20px;
     font-weight: 700;
-    color: #667eea;
+    color: #6799db;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -122,9 +123,9 @@ input[type="file"] {
 input:focus,
 select:focus,
 textarea:focus {
-    border-color: #667eea;
+    border-color: #618ff1;
     background: #fff;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    box-shadow: 0 0 0 4px rgba(97, 143, 241, 0.1);
     outline: none;
     transform: translateY(-2px);
 }
@@ -154,7 +155,7 @@ textarea {
 }
 
 .upload-container:hover {
-    border-color: #667eea;
+    border-color: #618ff1;
     background: linear-gradient(135deg, #fff 0%, #f7fafc 100%);
 }
 
@@ -175,7 +176,7 @@ textarea {
 
 .upload-anhbia {
     padding: 12px 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #6799db 100%);
     color: #fff;
     border-radius: 10px;
     cursor: pointer;
@@ -183,13 +184,13 @@ textarea {
     font-size: 15px;
     transition: all 0.3s ease;
     width: fit-content;
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 6px 20px rgba(97, 143, 241, 0.3);
     text-align: center;
 }
 
 .upload-anhbia:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 10px 30px rgba(97, 143, 241, 0.4);
 }
 
 /* ===== TWO COLUMN LAYOUT ===== */
@@ -223,14 +224,14 @@ textarea {
 }
 
 .btn-submit {
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     color: #fff;
-    box-shadow: 0 8px 25px rgba(56, 239, 125, 0.3);
+    box-shadow: 0 8px 25px rgba(49, 29, 178, 0.3);
 }
 
 .btn-submit:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 35px rgba(56, 239, 125, 0.4);
+    box-shadow: 0 12px 35px rgba(33, 80, 168, 0.4);
 }
 
 .btn-submit:active {
@@ -248,58 +249,7 @@ textarea {
     box-shadow: 0 12px 35px rgba(89, 97, 100, 0.4);
 }
 
-/* ===== RESPONSIVE DESIGN ===== */
-@media (max-width: 768px) {
-    .contain {
-        padding: 100px 15px 30px 15px;
-    }
-    
-    .contain-add-sk {
-        width: 95%;
-        padding: 35px 25px;
-        margin: 0 auto;
-    }
-    
-    .contain-add-sk h1 {
-        font-size: 28px;
-        margin-bottom: 30px;
-    }
-    
-    .two-col {
-        grid-template-columns: 1fr;
-        gap: 20px;
-    }
-    
-    .button-group {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .btn-submit,
-    .btn-back {
-        width: 100%;
-    }
-    
-    .section-title {
-        font-size: 18px;
-    }
-}
-
-@media (max-width: 480px) {
-    .contain {
-        padding: 90px 10px 20px 10px;
-    }
-    
-    .contain-add-sk {
-        padding: 25px 20px;
-    }
-    
-    .contain-add-sk h1 {
-        font-size: 24px;
-    }
-}
-/* ====
-= EDIT EVENT - CURRENT IMAGE ===== */
+/* ===== CURRENT IMAGE ===== */
 .current-image {
     margin-bottom: 20px;
     text-align: center;
@@ -350,4 +300,55 @@ textarea {
     background: #f0fff4;
     border: 2px solid #68d391;
     color: #2f855a;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .contain {
+        padding: 100px 15px 30px 15px;
+    }
+    
+    .contain-add-sk {
+        width: 95%;
+        padding: 35px 25px;
+        margin: 0 auto;
+    }
+    
+    .contain-add-sk h1 {
+        font-size: 28px;
+        margin-bottom: 30px;
+    }
+    
+    .two-col {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .button-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .btn-submit,
+    .btn-back {
+        width: 100%;
+    }
+    
+    .section-title {
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .contain {
+        padding: 90px 10px 20px 10px;
+    }
+    
+    .contain-add-sk {
+        padding: 25px 20px;
+    }
+    
+    .contain-add-sk h1 {
+        font-size: 24px;
+    }
 }

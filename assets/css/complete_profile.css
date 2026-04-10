@@ -38,7 +38,7 @@
 }
 
 body {
-    background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #4facfe);
+    background: linear-gradient(-45deg, #618ff1, #3076d2, #1a1a8e, #4facfe);
     background-size: 400% 400%;
     animation: gradient 15s ease infinite;
     min-height: 100vh;
@@ -85,7 +85,7 @@ body::before {
 }
 
 .header h1 {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     font-size: 36px;
@@ -138,9 +138,9 @@ input[type="tel"] {
 
 input:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #618ff1;
     background: white;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    box-shadow: 0 0 0 4px rgba(97, 143, 241, 0.1);
 }
 
 .gender-group {
@@ -160,7 +160,7 @@ input:focus {
     width: 20px;
     height: 20px;
     cursor: pointer;
-    accent-color: #667eea;
+    accent-color: #618ff1;
 }
 
 .gender-option label {
@@ -172,7 +172,7 @@ input:focus {
 
 .submit-btn {
     width: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     color: white;
     border: none;
     padding: 16px;
@@ -182,12 +182,12 @@ input:focus {
     cursor: pointer;
     margin-top: 30px;
     transition: all 0.3s ease;
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 20px rgba(97, 143, 241, 0.4);
 }
 
 .submit-btn:hover {
     transform: translateY(-3px);
-    box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5);
+    box-shadow: 0 12px 30px rgba(97, 143, 241, 0.5);
 }
 
 .error-text {

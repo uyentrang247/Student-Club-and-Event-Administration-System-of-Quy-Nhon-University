@@ -5,23 +5,28 @@ load_top();
 load_header();
 ?>
 
+<!-- HERO SECTION -->
 <section class="hero-qnu">
-    <div class="hero-left">
-        <h1>Hệ thống quản lý Câu lạc bộ và Sự kiện QNU</h1>
-        <p>Nền tảng chính thức dành cho các CLB đã được Trường Đại học Quy Nhơn phê duyệt. 
-        Quản lý thành viên – sự kiện – tài liệu một cách khoa học và hiệu quả.</p>
-
-        <button class="btn primary" onclick="location.href='DanhsachCLB.php'">
-            Xem danh sách CLB
-        </button>
-    </div>
-
-    <div class="hero-right">
-        <img src="assets/img/svqnu.png" class="hero-illustration">
+    <img class="hero-bg-image" src="assets/img/qnu-gate.jpg" alt="Cổng trường Đại học Quy Nhơn">
+    <div class="hero-overlay"></div>
+    
+    <div class="hero-container">
+        <h1 class="hero-title">Hệ thống quản lý <span class="gradient-text">Câu lạc bộ & Sự kiện</span> QNU</h1>
+        
+        <p class="hero-description">
+            Nền tảng chính thức dành cho các CLB đã được Trường Đại học Quy Nhơn phê duyệt. 
+            Quản lý thành viên – sự kiện – tài liệu một cách khoa học và hiệu quả.
+        </p>
+        
+        <div class="hero-buttons">
+            <button class="btn primary pulse" onclick="location.href='DanhsachCLB.php'">
+                <i class="ri-group-line"></i>
+                Xem danh sách CLB
+            </button>
+        </div>
+        
     </div>
 </section>
-
-
 
 <!-- TÍNH NĂNG CHÍNH -->
 <section class="feature-qnu">
@@ -43,7 +48,6 @@ load_header();
         <p>Lưu trữ tài liệu nội bộ và đăng tin tức cho CLB.</p>
     </div>
 </section>
-
 
 <!-- ĐỘI NGŨ PHÁT TRIỂN -->
 <section class="team-section">
@@ -133,7 +137,6 @@ load_header();
     </div>
 </section>
 
-
 <!-- LỢI ÍCH KHI THAM GIA CLB -->
 <section class="benefits-section">
     <h2>Tại sao nên tham gia CLB?</h2>
@@ -178,12 +181,11 @@ load_header();
     </div>
 </section>
 
-
 <!-- CALL TO ACTION -->
 <section class="cta-section">
     <div class="cta-content">
         <h2>Sẵn sàng tham gia cộng đồng CLB QNU?</h2>
-        <p>Khám phá hơn 80 câu lạc bộ và tìm nơi phù hợp với đam mê của bạn</p>
+        <p>Khám phá hơn 30 câu lạc bộ và tìm nơi phù hợp với đam mê của bạn</p>
         <div class="cta-buttons">
             <button class="btn primary large" onclick="location.href='DanhsachCLB.php'">
                 Khám phá CLB ngay
@@ -194,7 +196,6 @@ load_header();
         </div>
     </div>
 </section>
-
 
 <?php
 load_footer();

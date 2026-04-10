@@ -118,7 +118,7 @@ $total_clubs = count($clubs);
 
     <!-- TIÊU ĐỀ -->
     <h1 class="title">
-        Khám phá <span class="highlight"><?php echo $total_clubs; ?> Câu Lạc Bộ</span> phù hợp với bạn!
+        <span class="highlight"><?php echo $total_clubs; ?> Câu Lạc Bộ</span> đang chờ - Bạn sẽ chọn CLB nào để tỏa sáng?✨
     </h1>
 
     <!-- DANH MỤC ICON -->

@@ -1,5 +1,5 @@
 body {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     min-height: 100vh;
     padding-top: 100px;
 }
@@ -137,7 +137,7 @@ body {
 }
 
 .btn-search {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
     border: none;
     padding: 13px 28px;
@@ -333,7 +333,7 @@ body {
 }
 
 .role-vice {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
 }
 
@@ -413,7 +413,7 @@ body {
 }
 
 .btn-edit:hover {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
     border-color: #667eea;
     transform: translateY(-2px) scale(1.05);

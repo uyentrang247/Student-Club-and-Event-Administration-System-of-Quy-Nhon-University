@@ -55,32 +55,62 @@ if ($table_check && $table_check->num_rows > 0) {
     $stmt->close();
 }
 
+// Lấy danh sách thành tựu gần đây
+$achievements = [];
+$sql = "SELECT id, description, created_at FROM activities WHERE club_id = ? AND type = 'achievement' ORDER BY created_at DESC LIMIT 5";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $club_id);
+$stmt->execute();
+$achievements_result = $stmt->get_result();
+while ($row = $achievements_result->fetch_assoc()) {
+    $achievements[] = $row;
+}
+$stmt->close();
+
 load_top();
 load_header();
 ?>
 
+<?php if (isset($_SESSION['success'])): ?>
+    <div class="flash-message flash-success" id="flashMessage">
+        <span class="flash-icon">✓</span>
+        <span class="flash-text"><?= htmlspecialchars($_SESSION['success']) ?></span>
+        <button class="flash-close" onclick="this.parentElement.remove()">&times;</button>
+    </div>
+    <?php unset($_SESSION['success']); ?>
+<?php endif; ?>
+
+<?php if (isset($_SESSION['error'])): ?>
+    <div class="flash-message flash-error" id="flashMessage">
+        <span class="flash-icon">⚠</span>
+        <span class="flash-text"><?= htmlspecialchars($_SESSION['error']) ?></span>
+        <button class="flash-close" onclick="this.parentElement.remove()">&times;</button>
+    </div>
+    <?php unset($_SESSION['error']); ?>
+<?php endif; ?>
+
 <link rel="stylesheet" href="assets/css/Dashboard.css">
 <div class="dash-contain">
     <div class="dash-head">
-    <h1 class="dashboard-title">
-        <span id="back-to-myclub" class="back-arrow">←</span> Dashboard
-    </h1>
-
-<script>
-    document.getElementById("back-to-myclub").addEventListener("click", function () {
-        window.location.href = "myclub.php";
-    });
-</script>    </div>
+        <h1 class="dashboard-title">
+            <span id="back-to-myclub" class="back-arrow">←</span> Dashboard
+        </h1>
+        <script>
+            document.getElementById("back-to-myclub").addEventListener("click", function () {
+                window.location.href = "myclub.php";
+            });
+        </script>
+    </div>
+    
     <div class="dash-intro">
-        <h2 class="title-main">👋Chào mừng đến trang Quản lý Câu Lạc Bộ</h2>
+        <h2 class="title-main">👋 Chào mừng đến trang Quản lý Câu Lạc Bộ</h2>
         <p class="title-sub">Đây là nơi để bạn quản lý thông tin cho CLB của bạn hoặc các CLB mà bạn đã tham gia</p>
     </div>
 
     <?php if ($club_info): ?>
     <div class="club-info-card">
         <div class="club-logo">
-            <?php 
-            // Ưu tiên logo từ pages nếu có
+<?php 
             $logo_display = '';
             if ($club_page && !empty($club_page['logo_path'])) {
                 $logo_display = $club_page['logo_path'];
@@ -108,7 +138,7 @@ load_header();
             <h3>Bổ sung thông tin</h3>
             <p>Thông tin cơ bản của Câu Lạc Bộ</p>
             <button onclick="location.href='edit_inf_CLB.php?id=<?= $club_id ?>'" class="btn_addInfor">Bắt đầu</button>
-         </div>
+        </div>
 
         <div class="box page-add">
             <h3>Tạo trang đại diện</h3>
@@ -124,6 +154,36 @@ load_header();
         </div>
     </div>
 
+    <!-- ===== THÊM: THÀNH TỰU SECTION ===== -->
+    <div class="achievement-section">
+        <div class="achievement-header">
+            <h2>🏆 Thành tựu của CLB</h2>
+            <button onclick="openAchievementModal()" class="btn-add-achievement">
+                + Thêm thành tựu
+            </button>
+        </div>
+        
+        <div class="achievement-list">
+            <?php if (!empty($achievements)): ?>
+                <?php foreach ($achievements as $ach): ?>
+                    <div class="achievement-card">
+                        <div class="achievement-icon">🏆</div>
+                        <div class="achievement-content">
+                            <p><?= htmlspecialchars($ach['description']) ?></p>
+<span class="achievement-date">📅 <?= date('d/m/Y', strtotime($ach['created_at'])) ?></span>
+                        </div>
+                        <button class="achievement-delete" onclick="deleteAchievement(<?= $ach['id'] ?>, <?= $club_id ?>)">🗑️</button>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="empty-achievement">
+                    <p>Chưa có thành tựu nào</p>
+                    <p class="hint">Hãy thêm thành tựu đầu tiên cho CLB!</p>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
     <div class="dash-main">
         <div class="event-sect">
             <div class="event-empty">
@@ -131,30 +191,34 @@ load_header();
                 <div class="empty-txt"> 
                     <p>Tạo sự kiện để thu hút các nhà tài trợ</p>
                 </div> 
-                <button onclick="location.href='add_Su_kien.php?id=<?= $club_id ?>'" class="taosk">+Tạo sự kiện</button>
-                <button onclick="location.href='list_su_kien.php?id=<?= $club_id ?>'" 
-                    class="xemsk">
-                Xem sự kiện
-            </button>
+                <button onclick="location.href='add_Su_kien.php?id=<?= $club_id ?>'" class="taosk">+ Tạo sự kiện</button>
+                <button onclick="location.href='list_su_kien.php?id=<?= $club_id ?>'" class="xemsk">
+                    Xem sự kiện
+                </button>
+            </div>
+        </div>
+
+    <div class="attendance-sect">
+            <h2>Điểm danh</h2>
+            <div class="empty-txt">
+                <p>Quản lý sự hiện diện của thành viên</p>
+                <button onclick="location.href='attendance.php?id=<?= $club_id ?>'" class="taosk">+ Tạo buổi điểm danh</button>
+                <button onclick="location.href='attendance_statis.php?id=<?= $club_id ?>'" class="xemsk">Xem báo cáo</button>
             </div>
         </div>
       
         <div class="member-list">
-    <h2>Thành viên</h2>
-    
-    <div class="empty-txt" style="text-align: center; padding: 30px; color: #2d3748;">
-        <p>Thêm thành viên cho câu lạc bộ của bạn</p>
-        <button onclick="location.href='add_TV_CLB.php?id=<?= $club_id ?>'" class="taosk" style="margin-top: 10px;">
-            + Thêm thành viên
-        </button>
-        <button onclick="location.href='view_members.php?id=<?= $club_id ?>'" 
-                class="view_members">
-            Xem danh sách
-        </button>
-    </div>
-</div>
-
-
+            <h2>Thành viên</h2>
+            <div class="empty-txt" style="text-align: center; padding: 30px; color: #2d3748;">
+                <p>Thêm thành viên cho câu lạc bộ của bạn</p>
+                <button onclick="location.href='add_TV_CLB.php?id=<?= $club_id ?>'" class="taosk" style="margin-top: 10px;">
+                    + Thêm thành viên
+                </button>
+                <button onclick="location.href='view_members.php?id=<?= $club_id ?>'" class="view_members">
+                    Xem danh sách
+                </button>
+            </div>
+        </div>
     </div>
 
     <div class="task-group" style="margin-top: 30px;">
@@ -165,7 +229,60 @@ load_header();
         </div>
     </div>
 </div>
- 
+
+<!-- Modal thêm thành tựu -->
+<div id="achievementModal" class="modal-achievement">
+    <div class="modal-achievement-content">
+        <div class="modal-header">
+            <h3>🏆 Thêm thành tựu mới</h3>
+            <span class="close-modal" onclick="closeAchievementModal()">&times;</span>
+        </div>
+        <form id="achievementForm" method="POST" action="add_achievement.php">
+            <input type="hidden" name="club_id" value="<?= $club_id ?>">
+            <div class="form-group">
+                <label>Tiêu đề thành tựu *</label>
+                <input type="text" name="title" placeholder="VD: Giải nhất cuộc thi CLB xuất sắc" required>
+            </div>
+            <div class="form-group">
+<label>Mô tả (tùy chọn)</label>
+                <textarea name="description" rows="3" placeholder="Chi tiết về thành tựu..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Ngày đạt được</label>
+                <input type="date" name="achievement_date" value="<?= date('Y-m-d') ?>">
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn-cancel" onclick="closeAchievementModal()">Hủy</button>
+                <button type="submit" class="btn-submit">Thêm thành tựu</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAchievementModal() {
+    document.getElementById('achievementModal').style.display = 'flex';
+}
+
+function closeAchievementModal() {
+    document.getElementById('achievementModal').style.display = 'none';
+}
+
+function deleteAchievement(id, clubId) {
+    if (confirm('Bạn có chắc muốn xóa thành tựu này?')) {
+        window.location.href = 'delete_achievement.php?id=' + id + '&club_id=' + clubId;
+    }
+}
+
+// Đóng modal khi click ra ngoài
+window.onclick = function(event) {
+    const modal = document.getElementById('achievementModal');
+    if (event.target === modal) {
+        closeAchievementModal();
+    }
+}
+</script>
+
 <?php
 load_footer();
 ?>

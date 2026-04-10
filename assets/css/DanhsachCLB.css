@@ -60,7 +60,7 @@ body {
     font-size: 56px;
     font-weight: 900;
     margin-bottom: 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     letter-spacing: -1px;
@@ -101,14 +101,14 @@ body {
     border: 3px solid transparent;
     border-radius: 50%;
     background: linear-gradient(white, white) padding-box,
-                linear-gradient(135deg, #667eea 0%, #764ba2 100%) border-box;
+                linear-gradient(135deg, #618ff1 0%, #3076d2 100%) border-box;
     transition: all 0.3s ease;
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
+    box-shadow: 0 8px 20px rgba(97, 143, 241, 0.2);
 }
 
 .cat-item:hover img {
     transform: rotate(10deg) scale(1.1);
-    box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 12px 30px rgba(97, 143, 241, 0.4);
 }
 
 .cat-item p {
@@ -120,7 +120,7 @@ body {
 }
 
 .cat-item:hover p {
-    color: #667eea;
+    color: #618ff1;
 }
 
 /* ===== FILTERS ===== */
@@ -155,28 +155,28 @@ body {
 .filters input:focus,
 .filters select:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #618ff1;
     background: white;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    box-shadow: 0 0 0 3px rgba(97, 143, 241, 0.1);
 }
 
 .btn-filter {
     flex: 0 0 140px;
     height: 52px;
     border-radius: 12px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     color: white;
     font-size: 16px;
     font-weight: 700;
     border: none;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 8px 20px rgba(97, 143, 241, 0.3);
 }
 
 .btn-filter:hover {
     transform: translateY(-3px);
-    box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 12px 30px rgba(97, 143, 241, 0.4);
 }
 
 /* ===== CLUB CARDS ===== */
@@ -217,7 +217,7 @@ body {
     left: 0;
     right: 0;
     height: 5px;
-    background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+    background: linear-gradient(90deg, #618ff1, #3076d2, #394bd4);
     transform: scaleX(0);
     transition: transform 0.4s ease;
 }
@@ -228,8 +228,8 @@ body {
 
 .club-card:hover {
     transform: translateY(-12px);
-    box-shadow: 0 20px 50px rgba(102, 126, 234, 0.2);
-    border-color: rgba(102, 126, 234, 0.3);
+    box-shadow: 0 20px 50px rgba(97, 143, 241, 0.2);
+    border-color: rgba(97, 143, 241, 0.3);
 }
 
 .club-img {
@@ -261,9 +261,9 @@ body {
     box-shadow: 0 3px 10px rgba(0,0,0,0.1);
     margin-bottom: 16px;
     width: fit-content;
-    background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     color: white;
-    border: 1px solid #805ad5;
+    border: 1px solid #4c2ed1;
 }
 
 .club-info h2 {
@@ -280,7 +280,7 @@ body {
 }
 
 .club-card:hover .club-info h2 {
-    color: #667eea;
+    color: #618ff1;
 }
 
 .club-title-link {
@@ -305,7 +305,7 @@ body {
     margin: 16px 0;
     font-size: 15px;
     font-weight: 700;
-    color: #667eea;
+    color: #618ff1;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -316,10 +316,10 @@ body {
 .btn-detail {
     margin-top: auto;
     padding: 12px 28px;
-    border: 2px solid #667eea;
+    border: 2px solid #618ff1;
     border-radius: 12px;
     background: white;
-    color: #667eea;
+    color: #618ff1;
     cursor: pointer;
     transition: all 0.3s ease;
     font-size: 15px;
@@ -327,14 +327,14 @@ body {
     text-decoration: none;
     display: inline-block;
     text-align: center;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    box-shadow: 0 4px 12px rgba(97, 143, 241, 0.15);
 }
 
 .btn-detail:hover {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     color: white;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 6px 20px rgba(97, 143, 241, 0.3);
 }
 
 /* ===== XEM THÊM BUTTON ===== */
@@ -359,7 +359,7 @@ body {
     background: white;
     padding: 16px 40px;
     border-radius: 50px;
-    border: 3px solid #667eea;
+    border: 3px solid #618ff1;
     font-size: 18px;
     font-weight: 700;
     cursor: pointer;
@@ -367,15 +367,15 @@ body {
     align-items: center;
     gap: 10px;
     transition: all 0.3s ease;
-    color: #667eea;
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+    color: #618ff1;
+    box-shadow: 0 8px 25px rgba(97, 143, 241, 0.2);
 }
 
 .btn-xem-them:hover {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     color: white;
     transform: translateY(-5px);
-    box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 12px 35px rgba(97, 143, 241, 0.4);
 }
 
 .arrow {
@@ -390,7 +390,7 @@ body {
 /* ===== CTA SECTION ===== */
 .cta-full {
     width: 100%;
-    background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #4facfe);
+    background: linear-gradient(-45deg, #667eea, #477ab8, #4050ab, #4facfe);
     background-size: 400% 400%;
     animation: gradient 15s ease infinite;
     padding: 120px 20px;
@@ -437,7 +437,7 @@ body {
 
 .cta-btn {
     background: white;
-    color: #667eea;
+    color: #618ff1;
     border: none;
     padding: 20px 50px;
     font-size: 20px;
@@ -611,7 +611,7 @@ body {
     font-size: 24px;
     color: #333;
     margin-bottom: 20px;
-    border-left: 5px solid #6c5ce7;
+    border-left: 5px solid #618ff1;
     padding-left: 15px;
 }
 
