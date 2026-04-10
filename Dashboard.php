@@ -209,9 +209,9 @@ load_header();
       
         <div class="member-list">
             <h2>Thành viên</h2>
-            <div class="empty-txt" style="text-align: center; padding: 30px; color: #2d3748;">
+            <div class="empty-txt">
                 <p>Thêm thành viên cho câu lạc bộ của bạn</p>
-                <button onclick="location.href='add_TV_CLB.php?id=<?= $club_id ?>'" class="taosk" style="margin-top: 10px;">
+                <button onclick="location.href='add_TV_CLB.php?id=<?= $club_id ?>'" class="taosk">
                     + Thêm thành viên
                 </button>
                 <button onclick="location.href='view_members.php?id=<?= $club_id ?>'" class="view_members">
