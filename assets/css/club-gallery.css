@@ -57,7 +57,7 @@
 .back-btn {
     display: inline-flex;
     align-items: center;
-    color: #667eea;
+    color: #618ff1;
     text-decoration: none;
     font-weight: 600;
     margin-bottom: 15px;
@@ -66,7 +66,7 @@
 
 .back-btn:hover {
     transform: translateX(-5px);
-    color: #764ba2;
+    color: #3076d2;
 }
 
 .gallery-header h1 {
@@ -87,7 +87,7 @@
     align-items: center;
     gap: 8px;
     padding: 12px 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     color: white;
     border: none;
     border-radius: 12px;
@@ -95,12 +95,12 @@
     font-size: 15px;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 15px rgba(97, 143, 241, 0.3);
 }
 
 .btn-upload:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 20px rgba(97, 143, 241, 0.4);
 }
 
 .btn-upload span {
@@ -204,7 +204,7 @@
 
 .btn-upload-primary {
     padding: 14px 32px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     color: white;
     border: none;
     border-radius: 12px;
@@ -212,12 +212,12 @@
     font-size: 16px;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 6px 20px rgba(97, 143, 241, 0.3);
 }
 
 .btn-upload-primary:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 25px rgba(97, 143, 241, 0.4);
 }
 
 /* Modal */
@@ -303,12 +303,12 @@
 }
 
 .upload-area:hover {
-    border-color: #667eea;
+    border-color: #618ff1;
     background: #edf2f7;
 }
 
 .upload-area.dragover {
-    border-color: #667eea;
+    border-color: #618ff1;
     background: #e6f2ff;
 }
 
@@ -387,9 +387,9 @@
 
 .form-group input:focus,
 .form-group textarea:focus {
-    border-color: #667eea;
+    border-color: #618ff1;
     outline: none;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    box-shadow: 0 0 0 3px rgba(97, 143, 241, 0.1);
 }
 
 /* Modal Actions */
@@ -421,14 +421,14 @@
 }
 
 .btn-submit {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     color: white;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 15px rgba(97, 143, 241, 0.3);
 }
 
 .btn-submit:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 20px rgba(97, 143, 241, 0.4);
 }
 
 /* Lightbox */

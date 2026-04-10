@@ -29,7 +29,7 @@ body {
 .page-header h1 {
     font-size: 42px;
     font-weight: 900;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 12px;
@@ -86,7 +86,7 @@ body {
 }
 
 .btn-action {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
     border: none;
     padding: 10px 24px;
@@ -141,7 +141,7 @@ body {
 }
 
 input:checked + .slider {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
 }
 
 input:checked + .slider:before {
@@ -218,7 +218,7 @@ body.dark-mode .setting-info p {
 }
 
 body.dark-mode .btn-action {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
 }
 
@@ -236,7 +236,7 @@ body.dark-mode .settings-card.danger {
     position: fixed;
     bottom: 30px;
     right: 30px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
     padding: 16px 24px;
     border-radius: 12px;

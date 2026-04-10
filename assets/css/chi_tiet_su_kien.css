@@ -78,7 +78,7 @@ body {
 .event-date-large .date-day {
     font-size: 48px;
     font-weight: 900;
-    color: #667eea;
+    color: #618ff1;
     line-height: 1;
 }
 
@@ -137,7 +137,7 @@ body {
     color: #2d3748;
     margin: 20px 0 30px 0;
     line-height: 1.2;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -182,7 +182,7 @@ body {
 
 .meta-item .end-time {
     font-size: 14px;
-    color: #667eea;
+    color: #618ff1;
     margin-top: 5px;
 }
 
@@ -199,8 +199,8 @@ body {
 .meta-item .registered-count {
     font-size: 20px;
     font-weight: 800;
-    color: #667eea;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #618ff1;
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -257,11 +257,11 @@ body {
 }
 
 .btn-join-large {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     color: white;
-    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 10px 30px rgba(97, 143, 241, 0.3);
 }
-.btn-join-large:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(102,126,234,0.35); }
+.btn-join-large:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(97, 143, 241, 0.35); }
 .btn-join-large:active { transform: translateY(0); }
 
 .btn-registered {
@@ -286,8 +286,8 @@ body {
 
 .btn-back {
     background: white;
-    color: #667eea;
-    border-color: #667eea;
+    color: #618ff1;
+    border-color: #618ff1;
 }
 .btn-back:hover { background: #eef2ff; }
 
@@ -325,7 +325,7 @@ body {
     border-radius: 50%;
     object-fit: cover;
     margin-bottom: 15px;
-    border: 4px solid #667eea;
+    border: 4px solid #618ff1;
 }
 
 .club-info h4 {
@@ -345,18 +345,18 @@ body {
     display: inline-block;
     padding: 12px 30px;
     border-radius: 50px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     color: white;
     font-size: 15px;
     font-weight: 700;
     text-decoration: none;
     transition: all 0.3s ease;
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 5px 15px rgba(97, 143, 241, 0.3);
 }
 
 .btn-view-club:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 20px rgba(97, 143, 241, 0.4);
 }
 
 /* ===== QUICK INFO ===== */

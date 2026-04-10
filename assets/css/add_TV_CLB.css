@@ -6,10 +6,10 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     min-height: 100vh;
     padding: 20px;
-    padding-top: 100px; /* Thêm padding để tránh bị che bởi header */
+    padding-top: 100px;
 }
 
 .addTV-container {
@@ -31,7 +31,7 @@ body {
 .header-icon {
     width: 64px;
     height: 64px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     border-radius: 16px;
     display: flex;
     align-items: center;
@@ -86,8 +86,8 @@ body {
 }
 
 #search-input:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    border-color: #618ff1;
+    box-shadow: 0 0 0 4px rgba(97, 143, 241, 0.1);
     background: white;
 }
 
@@ -96,8 +96,8 @@ body {
 }
 
 .selected-user-box {
-    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
-    border: 2px solid #667eea;
+    background: linear-gradient(135deg, #618ff115 0%, #3076d215 100%);
+    border: 2px solid #618ff1;
     border-radius: 16px;
     padding: 20px;
     margin: 24px 0;
@@ -121,7 +121,7 @@ body {
 .selected-user-avatar {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -152,7 +152,7 @@ body {
 
 .selected-email {
     font-size: 14px;
-    color: #667eea;
+    color: #618ff1;
 }
 
 .selected-actions {
@@ -180,8 +180,8 @@ body {
 }
 
 .selected-actions select:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    border-color: #618ff1;
+    box-shadow: 0 0 0 4px rgba(97, 143, 241, 0.1);
 }
 
 .helper-text {
@@ -240,7 +240,7 @@ body {
 }
 
 .section-title svg {
-    color: #667eea;
+    color: #618ff1;
 }
 
 .section-subtitle {
@@ -271,7 +271,7 @@ body {
 
 .users-grid::-webkit-scrollbar-thumb,
 .suggestions-box::-webkit-scrollbar-thumb {
-    background: #667eea;
+    background: #618ff1;
     border-radius: 10px;
 }
 
@@ -288,15 +288,15 @@ body {
 }
 
 .user-card:hover {
-    border-color: #667eea;
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+    border-color: #618ff1;
+    box-shadow: 0 8px 24px rgba(97, 143, 241, 0.15);
     transform: translateY(-4px);
 }
 
 .user-avatar {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -329,7 +329,7 @@ body {
 }
 
 .add-this-user-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     color: white;
     border: none;
     padding: 10px 16px;
@@ -346,7 +346,7 @@ body {
 
 .add-this-user-btn:hover {
     transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 12px rgba(97, 143, 241, 0.4);
 }
 
 .btn-add-member {
@@ -406,10 +406,10 @@ body {
     font-size: 15px;
     font-weight: 600;
     color: #fff;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     border: none;
     border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 15px rgba(97, 143, 241, 0.3);
     cursor: pointer;
     transition: all 0.3s ease;
     text-decoration: none;
@@ -417,7 +417,7 @@ body {
 
 .btn-back:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 25px rgba(97, 143, 241, 0.4);
 }
 
 .btn-back:active {

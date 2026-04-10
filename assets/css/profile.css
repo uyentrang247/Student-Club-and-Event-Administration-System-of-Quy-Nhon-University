@@ -30,7 +30,7 @@ body {
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #3d3de0 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -101,7 +101,7 @@ body {
 
 .btn-edit {
     width: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #3d3de0 100%);
     color: white;
     border: none;
     padding: 14px;
@@ -160,7 +160,7 @@ body {
 }
 
 .btn-change-avatar:hover {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #3d3de0 100%);
     color: white;
     transform: scale(1.05);
 }

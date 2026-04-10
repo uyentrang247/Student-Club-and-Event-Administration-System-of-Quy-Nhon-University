@@ -3,7 +3,7 @@
 }
 
 body {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     min-height: 100vh;
     padding: 20px;
     padding-top: 100px; /* Thêm padding để tránh bị che bởi header */
@@ -36,7 +36,7 @@ body {
 .header-icon {
     width: 64px;
     height: 64px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     border-radius: 16px;
     display: flex;
     align-items: center;
@@ -58,7 +58,7 @@ body {
 }
 
 .btn-mark-all {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
     border: none;
     padding: 12px 24px;
@@ -106,7 +106,7 @@ body {
 }
 
 .tab-btn.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
 }
 
@@ -160,7 +160,7 @@ body {
 
 .notif-icon.club_join,
 .notif-icon.club_invite {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
 }
 
 .notif-icon.event_join,

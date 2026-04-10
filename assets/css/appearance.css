@@ -45,7 +45,7 @@ body {
 .page-header h1 {
     font-size: 42px;
     font-weight: 900;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -126,7 +126,7 @@ body {
 }
 
 .toggle-switch input:checked + .slider {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
 }
 
 .toggle-switch input:checked + .slider:before {
@@ -134,7 +134,7 @@ body {
 }
 
 .toggle-switch:hover .slider {
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    box-shadow: 0 0 0 4px rgba(97, 143, 241, 0.1);
 }
 
 /* Dark Mode Styles */

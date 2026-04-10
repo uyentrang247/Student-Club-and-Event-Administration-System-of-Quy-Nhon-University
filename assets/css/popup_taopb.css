@@ -64,7 +64,7 @@
   width: 56px;
   height: 56px;
   margin: 0 auto 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -243,7 +243,7 @@ form {
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
