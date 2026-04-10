@@ -33,7 +33,7 @@ body {
 .header-icon {
     width: 64px;
     height: 64px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     border-radius: 16px;
     display: flex;
     align-items: center;
@@ -509,7 +509,7 @@ body {
 }
 
 .page-num.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #6799db 100%);
     color: white;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
@@ -724,9 +724,9 @@ body {
 }
 
 .edit-btn-submit {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #618ff1 0%, #3076d2 100%);
     color: white;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 12px rgba(49, 72, 176, 0.3);
 }
 
 .edit-btn-submit:hover {
