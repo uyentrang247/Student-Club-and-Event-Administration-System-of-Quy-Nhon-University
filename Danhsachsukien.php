@@ -58,8 +58,8 @@ if (isset($_SESSION['user_id'])) {
 <div class="container">
     <!-- TIÊU ĐỀ -->
     <h1 class="title">
-        🧡 Hãy cùng khám phá<br>
-        <span class="highlight">Những sự kiện hấp dẫn</span> 🧡
+        🧡 Đừng bỏ lỡ <br>
+        <span class="highlight">Những sự kiện thú vị đang chờ bạn</span> 🧡
     </h1>
 
     <!-- DANH MỤC ICON -->
