@@ -116,12 +116,13 @@ $flash = get_flash_message();
                     </label>
                     <select name="category" required>
                         <option value="">Chọn lĩnh vực</option>
-                        <option value="Academic">📚 Học thuật</option>
-                        <option value="Sport">⚽ Thể thao</option>
-                        <option value="Art">🎨 Nghệ thuật</option>
-                        <option value="Volunteer">❤️ Tình nguyện</option>
-                        <option value="Skill">💡 Kỹ năng</option>
-                        <option value="Other">🔖 Khác</option>
+                        <option value="Học thuật">📚 Học thuật</option>
+                        <option value="Thể thao">⚽ Thể thao</option>
+                        <option value="Nghệ thuật">🎨 Nghệ thuật</option>
+                        <option value="Tình nguyện">❤️ Tình nguyện</option>
+                        <option value="Kỹ năng">💡 Kỹ năng</option>
+                        <option value="Khởi nghiệp">🚀 Khởi nghiệp</option>
+                        <option value="Khác">🔖 Khác</option>
                     </select>
                 </div>
 
