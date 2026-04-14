@@ -9,6 +9,42 @@ session_start();
 
 require_once __DIR__ . '/assets/database/connect.php';
 
+// Hàm tạo slug từ chuỗi
+function createSlug($string) {
+    if (empty($string)) {
+        return 'club';
+    }
+    $slug = strtolower(trim($string));
+    $slug = preg_replace('/[^a-z0-9]+/u', '-', $slug);
+    $slug = trim($slug, '-');
+    if (empty($slug)) {
+        $slug = 'club';
+    }
+    return $slug;
+}
+
+// Hàm kiểm tra slug duy nhất
+function getUniqueSlug($conn, $slug, $excludeId = 0) {
+    $originalSlug = $slug;
+    $counter = 1;
+    
+    $stmt = $conn->prepare("SELECT id FROM clubs WHERE slug = ? AND id != ?");
+    $stmt->bind_param("si", $slug, $excludeId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    while ($result->num_rows > 0) {
+        $slug = $originalSlug . '-' . $counter;
+        $stmt->bind_param("si", $slug, $excludeId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $counter++;
+    }
+    
+    $stmt->close();
+    return $slug;
+}
+
 // Kiểm tra user tồn tại
 function userExists($userId) {
     global $conn;
@@ -24,7 +60,7 @@ require_login();
 
 // Verify CSRF token
 if (!isset($_POST[CSRF_TOKEN_NAME]) || !verify_csrf_token($_POST[CSRF_TOKEN_NAME])) {
-        redirect("createCLB.php", "Token bảo mật không hợp lệ!", "danger");
+    redirect("createCLB.php", "Token bảo mật không hợp lệ!", "danger");
 }
 
 $leader_id = $_SESSION['user_id'];
@@ -40,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($name) || empty($category)) {
         redirect("createCLB.php", "Vui lòng điền đầy đủ thông tin bắt buộc!", "warning");
     }
+    
     // Tên CLB không trùng (không phân biệt hoa thường)
     $stmt_check = $conn->prepare("SELECT id FROM clubs WHERE LOWER(name) = LOWER(?) LIMIT 1");
     $stmt_check->bind_param("s", $name);
@@ -49,6 +86,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect("createCLB.php", "Tên câu lạc bộ đã tồn tại, vui lòng chọn tên khác.", "warning");
     }
     $stmt_check->close();
+    
+    // ========== TẠO SLUG TỪ TÊN CLB (ĐẶT TRONG POST) ==========
+    $slug = createSlug($name);
+    $slug = getUniqueSlug($conn, $slug);
+    // ========================================================
   
     // Upload ảnh với validation đầy đủ
     if (!isset($_FILES['logo']) || $_FILES['logo']['error'] !== UPLOAD_ERR_OK) {
@@ -79,13 +121,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $stmt_media->close();
 
-    // Thêm CLB (bảng clubs)
+    // ========== THÊM CLB - ĐÃ BAO GỒM SLUG ==========
     $stmt = $conn->prepare("
-        INSERT INTO clubs (name, description, category, leader_id)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO clubs (name, slug, description, category, leader_id, total_members)
+        VALUES (?, ?, ?, ?, ?, ?)
     ");
-
-    $stmt->bind_param("sssi", $name, $description, $category, $leader_id);
+    
+    $stmt->bind_param("ssssii", $name, $slug, $description, $category, $leader_id, $total_members);
+    // =================================================
 
     if ($stmt->execute()) {
         // Lấy ID của CLB vừa tạo
